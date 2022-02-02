@@ -1,5 +1,8 @@
 import furigana from "./markdownitFurigana.js";
-let mdit = markdownit({ html: true }).use(furigana);
+window.mdit = markdownit({ html: true })
+    .use(window.markdownitMultimdTable, { rowspan: true, headerless: true, })
+    .use(window.markdownitMark)
+    .use(furigana);
 
 import normalize from "./path-normalize.js";
 
@@ -33,7 +36,7 @@ function onMdLoaded() {
 }
 
 function convertSpan(md) {
-    let pattern = /`(.+)'/g;
+    let pattern = /(?<!\\)'([^']+)(?<!\\)'/g;
     let span = '<span lang="ja">$1</span>';
     return md.replace(pattern, span);
 }

@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="./github-markdown.css">
         <style>
-        .markdown-body {
+        #header, #mdcontent {
             box-sizing: border-box;
             min-width: 200px;
             max-width: 980px;
@@ -14,14 +14,10 @@
             padding-top: 35px;
         }
 
-        .markdown-body img {
-            display: block;
-            margin: 0 auto;
-        }
-
-        .markdown-body u {
-            text-decoration-thickness: 1px;
-            text-underline-offset: 2px;
+        @media (max-width: 767px) {
+            #header, #mdcontent {
+                padding: 15px;
+            }
         }
 
         #header {
@@ -33,25 +29,149 @@
             margin-right: 20px;
         }
 
-        @media (max-width: 767px) {
+        #mdcontent img {
+            display: block;
+            margin: 0 auto;
+        }
+
+        #mdcontent u {
+            text-decoration-thickness: 1px;
+            text-underline-offset: 2px;
+        }
+
+        #mdcontent span.tone {
+            border-color: var(--color-accent-fg);
+            border-style: none;
+            border-width: 1px;
+            padding: 0px;
+        }
+
+        #mdcontent span.tone.tone-bottom {
+            border-bottom-style: solid;
+        }
+
+        #mdcontent span.tone.tone-top {
+            border-top-style: solid;
+        }
+
+        #mdcontent span.tone.tone-left {
+            border-left-style: solid;
+        }
+
+        #mdcontent span.tone.tone-right {
+            border-right-style: solid;
+        }
+
+        #mdcontent .boxed {
+            display: inline-block;
+            border-color: initial;
+            border-style: solid;
+            border-width: 2px;
+            padding: 16px;
+            margin: 10px 0px;
+        }
+
+        #mdcontent .boxed p:last-child {
+            margin-bottom: 0px;
+        }
+
+        #mdcontent em {
+            font-style: inherit;
+            -webkit-text-emphasis: filled circle;
+            text-emphasis: filled circle;
+            -webkit-text-emphasis-position: under right;
+            text-emphasis-position: under right;
+        }
+
+        #mdcontent .hidden-table td,
+        #mdcontent .hidden-table th {
+            border-style: hidden;
+            padding: 0px;
+            font-weight: initial;
+        }
+
+        #mdcontent .hidden-table tr {
+            background-color: var(--color-canvas-default);
+        }
+
+        #mdcontent table {
+            white-space:nowrap;
+        }
+
+        #mdcontent table caption{
+            color: var(--color-prettylights-syntax-comment);
+        }
+
+        #mdcontent tbody,
+        #mdcontent thead {
+            border-left-style: hidden;
+            border-right-style: hidden;
+            border-collapse: collapse;
+        }
+
+        #mdcontent table {
+            white-space:nowrap;
+        }
+
+        #mdcontent summary:hover {
+            background-color: var(--color-canvas-subtle);
+        }
+
+        #mdcontent summary::marker {
+            color: var(--color-accent-fg);
+        }
+
+        #mdcontent .mark-ruby rt {
+            background-color: var(--color-attention-subtle);
+        }
+
+        #mdcontent p:empty::after {
+            content: ".";
+            visibility: hidden;
+        }
+
+        #mdcontent blockquote {
+            color: inherit;
+        }
+
+        #mdcontent .bg-red {
+            background-color: var(--color-prettylights-syntax-markup-deleted-bg);
+        }
+        
+        #mdcontent .bg-green {
+            background-color: var(--color-prettylights-syntax-markup-inserted-bg);
+        }
+
+        #mdcontent .bg-grey, #mdcontent .bg-gray {
+            background-color: var(--color-custom-bg-gray);
+        }
+
+        @media (prefers-color-scheme: light) {
             .markdown-body {
-                padding: 15px;
+                --color-custom-bg-gray: #e0e0e0;
+            }
+        }
+        @media (prefers-color-scheme: dark) {
+            .markdown-body {
+                --color-custom-bg-gray: #303030;
+                --color-attention-subtle: rgba(187,128,9,0.30);
             }
         }
         </style>
     </head>
-    <body>
-        <div id="header" class="markdown-body">
+    <body class="markdown-body">
+        <div id="header" >
             <a href="/">HOME</a>
             <a href="/?/新标日/index">新标日课程笔记</a>
         </div>
         
-        <div id="mdcontent" class="markdown-body">
+        <div id="mdcontent">
 
         </div>
         <script type="module" src="/js/markdown-it.min.js"></script>
         <script type="module" src="/js/markdown-it-multimd-table.min.js"></script>
         <script type="module" src="/js/markdown-it-mark.min.js"></script>
+        <script type="module" src="/js/markdown-it-attrs.browser.js"></script>
         <script type="module" src="/js/md2html.js"></script>
     </body>
 </html>

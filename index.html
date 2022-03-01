@@ -1,8 +1,9 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <link rel="icon" href="data:">
         <link rel="stylesheet" href="./github-markdown.css">
         <style>
         #header, #mdcontent {
@@ -39,26 +40,58 @@
             text-underline-offset: 2px;
         }
 
+        /*
         #mdcontent span.tone {
             border-color: var(--color-accent-fg);
             border-style: none;
             border-width: 1px;
-            padding: 0px;
+            padding: 1px 0px;
+            margin: 2.5px 0px;
+            display: inline-block;
+            line-height: calc(1.5em - 2px);      
         }
 
-        #mdcontent span.tone.tone-bottom {
+        #mdcontent span.tone.l {
+            border-bottom-style: solid;
+            padding-bottom: 0px;
+        }
+
+        #mdcontent span.tone.h {
+            border-top-style: solid;
+            padding-top: 0px;
+        }
+
+        #mdcontent span.tone.v {
+            border-right-style: solid;
+        }*/
+
+        #mdcontent span.tone {
+            position: relative;
+            line-height: calc(1.5em + 5px);
+            z-index: 0;
+        }
+        #mdcontent span.tone::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            left: 0px;
+            top: 0px;
+            border-style: none;
+            border-width: 1px;
+            border-color: var(--color-accent-fg);
+            z-index: -1;
+        }
+        #mdcontent span.tone.l::after {
             border-bottom-style: solid;
         }
-
-        #mdcontent span.tone.tone-top {
+        #mdcontent span.tone.h::after {
             border-top-style: solid;
         }
-
-        #mdcontent span.tone.tone-left {
-            border-left-style: solid;
+        #mdcontent span.tone.v {
+            margin-right: 1px;
         }
-
-        #mdcontent span.tone.tone-right {
+        #mdcontent span.tone.v::after {
             border-right-style: solid;
         }
 
@@ -81,6 +114,10 @@
             text-emphasis: filled circle;
             -webkit-text-emphasis-position: under right;
             text-emphasis-position: under right;
+        }
+
+        #mdcontent strong, #mdcontent b {
+            font-weight: bold;
         }
 
         #mdcontent .hidden-table td,
@@ -134,26 +171,39 @@
             color: inherit;
         }
 
-        #mdcontent .bg-red {
-            background-color: var(--color-prettylights-syntax-markup-deleted-bg);
-        }
-        
-        #mdcontent .bg-green {
-            background-color: var(--color-prettylights-syntax-markup-inserted-bg);
+        #mdcontent svg, #mdcontent img {
+            max-width: max-content;
+            width: 100%;
+            height: auto;
         }
 
-        #mdcontent .bg-grey, #mdcontent .bg-gray {
-            background-color: var(--color-custom-bg-gray);
+        #mdcontent figure{
+            max-width: max-content;
+            width: 100%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        #mdcontent figcaption {
+            text-align: center;
+        }
+
+        .markdown-body {
+            --red: var(--color-prettylights-syntax-keyword);
+            --green: var(--color-prettylights-syntax-string-regexp);
+            --blue: var(--color-prettylights-syntax-constant);
+            --bg-red: var(--color-prettylights-syntax-markup-deleted-bg);
+            --bg-green: var(--color-prettylights-syntax-markup-inserted-bg);
         }
 
         @media (prefers-color-scheme: light) {
             .markdown-body {
-                --color-custom-bg-gray: #e0e0e0;
+                --bg-gray: #e0e0e0;
             }
         }
         @media (prefers-color-scheme: dark) {
             .markdown-body {
-                --color-custom-bg-gray: #303030;
+                --bg-gray: #303030;
                 --color-attention-subtle: rgba(187,128,9,0.30);
             }
         }
@@ -172,6 +222,7 @@
         <script type="module" src="/js/markdown-it-multimd-table.min.js"></script>
         <script type="module" src="/js/markdown-it-mark.min.js"></script>
         <script type="module" src="/js/markdown-it-attrs.browser.js"></script>
+        <script type="module" src="/js/markdown-it-emoji-light.min.js"></script>
         <script type="module" src="/js/md2html.js"></script>
     </body>
 </html>

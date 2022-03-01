@@ -3,7 +3,8 @@ window.mdit = markdownit({ html: true, breaks: true })
     .use(furigana)
     .use(window.markdownitMultimdTable, { rowspan: true, headerless: true })
     .use(window.markdownitMark)
-    .use(window.markdownItAttrs);
+    .use(window.markdownItAttrs)
+    .use(window.markdownitEmoji, { defs: { v: '✔️', x: '❌' } });
 
 
 
@@ -30,15 +31,38 @@ function onMdLoaded() {
     let mdcontent = document.getElementById("mdcontent");
 
     let md = this.responseText;
-    mdcontent.innerHTML = mdit.render(convertLangBlock(md));
+    let styles = [];
+    let scripts = [];
+    console.time('preprocess');
+    md = preprocessMd(md, styles, scripts);
+    console.timeEnd('preprocess');
+
+    for (let style of styles) {
+        let styleElem = document.createElement('style');
+        styleElem.innerHTML = style;
+
+        document.head.append(styleElem);
+        for (let rule of styleElem.sheet.cssRules) {
+            rule.selectorText = rule.selectorText.split(',')
+                .map(sel => '#mdcontent ' + sel.trim())
+                .join(',');
+        }
+    }
+
+    mdcontent.innerHTML = mdit.render(md);
     let h1 = mdcontent.getElementsByTagName("H1");
     if (h1.length > 0) {
         document.title = h1[0].innerText;
     }
     
     convertHref(mdcontent);
+    convertImgSrc(mdcontent);
+    convertTableColWidth(mdcontent);
     convertTableMarkers(mdcontent);
-
+    setSvgViewBox(mdcontent);
+    
+    executeScripts(scripts);
+    setButtonEvent(mdcontent);
 
     if (location.hash !== "") {
         location.replace(location.href);
@@ -51,48 +75,115 @@ function onMdLoaded() {
 //     return md.replace(pattern, span);
 // }
 
-/**@param {String} md*/
-function convertLangBlock(md) {
-    // remove \ + \n
-    md = md.replaceAll(/(?<!\\)\\\r?\n/g, "");
 
-    let delim = /(^'''$|^\[\[\[$|^\]\]\]$|^\.$)/m;
-    let single_quoted_pattern = /(?<!\\)'([^']+)(?<!\\)'/g;
-    let segments = md.split(delim);
-    let outputs = [];
-    let inside_triple_quote = false;
-    for (let seg of segments) {
-        if (seg === "'''") {
-            if (!inside_triple_quote) {
-                outputs.push('<div lang="ja">\n');
-            }
-            else {
-                outputs.push('</div>\n');
-            }
-            inside_triple_quote = !inside_triple_quote;
-        }
-        else if (seg === "[[[") {
-            outputs.push('<div class="boxed">\n')
-        }
-        else if (seg === "]]]") {
-            outputs.push('</div>\n')
-        }
-        else if (seg === ".") {
-            outputs.push('<p></p>\n')
-        }
-        else {
-            if (inside_triple_quote) {              
-                outputs.push(seg.replaceAll(single_quoted_pattern, '<span lang>$1</span>'));               
-            }
-            else {
-                outputs.push(seg.replaceAll(single_quoted_pattern, '<span lang="ja">$1</span>'));
-            }
-        }
+/**
+ * @param {string} md
+ * @param {string[]} styles
+ * @param {string[]} scripts
+*/
+function preprocessMd(md, styles, scripts) {
+
+    let pair = init();
+    return md.replaceAll(pair.multiRegex, pair.multiReplacer);
+
+    function init(){
+        let inside_triple_quote = false;
+
+        const circledNumbers = '⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+
+        let rules = [
+            /^\[\[\[$/,         ()=>'<div class="boxed">\n',
+            /^\]\]\]$/,         ()=>'</div>\n',
+            /^\.$/,             ()=>'<p></p>\n',
+            /(?<!\\)\\\r?\n/,   ()=>'',
+            /^>>>$/,            ()=>'<blockquote>\n',
+            /^<<<$/,            ()=>'</blockquote>\n',
+
+
+            /(?<!\\)'(?<text>[^']+)(?<!\\)'/,
+                                g => inside_triple_quote ? `<span lang="zh-CN">${g.text}</span>` : `<span lang="ja">${g.text}</span>`,
+            
+            /(?<!\{\s*)(?<kana>[\u3040-\u30ff]+)(?![\u3040-\u30ff])/,
+                                g => inside_triple_quote ? g.kana : `<span lang="ja">${g.kana}</span>`,
+
+            /^'''$/,            () => { 
+                                    let replace = inside_triple_quote ? '</div>\n' : '<div lang="ja">\n';
+                                    inside_triple_quote = !inside_triple_quote;
+                                    return replace;
+                                },
+                                
+            /\[(?<tone_text>[^\]]+)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
+
+            /<style>(?<style_content>[^]*?)<\/style>/,
+                                g => {
+                                    styles.push(g.style_content);
+                                    return '';
+                                },
+            
+            /<script>(?<script_content>[^]*?)<\/script>/,
+                                g => {
+                                    scripts.push(g.script_content);
+                                    return '';
+                                },
+
+            /\(\(\s*(?<circled_num>\d+)\s*\)\)/,
+                                g => {
+                                    let num = Number(g.circled_num);
+                                    return num < circledNumbers.length ? circledNumbers[num] : circled_num;
+                                }
+        ];
         
-    }
-    return outputs.join("");
-}
+        /**@param {{tone_text:string, tone_num:string|undefined, tone_hl:string|undefined}} groups */
+        function processTone(groups) {
+            let delim = /(?<=.)(?![ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ])(?=.)/;
+            let moras = groups.tone_text.split(delim);
 
+            let hl;
+            if (groups.tone_num !== undefined) {
+                let num = Number(groups.tone_num);
+                hl = moras.map((_, i) => i + 1 == num ? 'h v'
+                                        : i == 0 ? 'l v'
+                                        : i + 1 < num || num == 0 ? 'h' : 'l');             
+            }
+            else {
+                hl = groups.tone_hl.toLowerCase().split('');
+                for (let i = 0; i < hl.length-1; ++i) {
+                    if (hl[i] !== hl[i + 1]) {
+                        hl[i] = hl[i] === 'h' ? 'h v' : 'l v';
+                    }
+                }
+            }
+
+            let spans = ['<span lang="ja">'];
+            moras.forEach((mora, i) =>
+                spans.push(i < hl.length ? `<span class="tone ${hl[i]}">${mora}</span>` : mora)
+            );
+            spans.push('</span>');  
+            return spans.join('');
+        }
+
+        let ruleKeys = [];
+
+        function buildMultiRegex() {
+            let regexSrcList = [];
+            for (let i = 0; i < rules.length; i += 2){
+                let ruleKey = 'rule_' + (i / 2).toString();
+                ruleKeys.push(ruleKey);
+                regexSrcList.push(`(?:(?<${ruleKey}>)${rules[i].source})`);
+            }
+            return new RegExp(regexSrcList.join('|'), 'mgu');
+        }
+
+        function multiReplacer() {
+            let groups = arguments[arguments.length - 1];
+            let ruleIndex = ruleKeys.findIndex((key) => groups[key] !== undefined);
+            let replacer = rules[ruleIndex * 2 + 1];
+            return replacer(groups);
+        }
+
+        return { multiRegex: buildMultiRegex(), multiReplacer };
+    }    
+}
 
 let current_md_dir = mdpath.match(/(.*\/)[^\/]*/)[1];
 let http_pattern = /^https?:\/\//;
@@ -101,8 +192,8 @@ let http_pattern = /^https?:\/\//;
 function convertHref(elem) {
     let links = elem.getElementsByTagName("a");
     for (let a of links) {
-        let href = a.getAttribute("href");
-        if (href.startsWith("#") || http_pattern.test(href)) {
+        let href = a.getAttribute('href');
+        if (href.startsWith("#") || http_pattern.test(href) || a.hasAttribute("onclick")) {
             return;
         }
 
@@ -124,16 +215,25 @@ function convertHref(elem) {
 }
 
 /** @param {HTMLElement} elem  */
+function convertImgSrc(elem) {
+    let imgs = elem.getElementsByTagName("img");
+    for (let img of imgs) {
+        let src = img.getAttribute('src');
+        if (http_pattern.test(src) || src.startsWith('/')) {
+            return;
+        }
+        img.src = normalize(current_md_dir + src);
+    }
+}
+
+/** @param {HTMLElement} elem  */
 function convertTableMarkers(elem) {
-    let tables = elem.getElementsByTagName("table");
+    let tables = elem.querySelectorAll("table[markers]");
     for (let table of tables) {
         let markersStr = table.getAttribute("markers");
-        if (markersStr === null)
-            continue;
-
         let markers = new Map();
         for (let kvStr of markersStr.split(/;\s?|,\s?|\s+/)) {
-            let kv = kvStr.match(/(?<key>[^\s])=(?<value>[^\s]+)/);
+            let kv = kvStr.match(/(?<key>[^\s])[=:](?<value>[^\s]+)/);
             markers.set(kv.groups.key, kv.groups.value);
         }
 
@@ -150,6 +250,78 @@ function convertTableMarkers(elem) {
                 cell.classList.add(cls);
             }
             last.textContent = str.substring(0, i + 1).trimEnd();
+        }
+    }
+}
+
+/** @param {HTMLElement} elem  */
+function convertTableColWidth(elem) {
+    /** @type {NodeListOf<HTMLTableElement>}  */
+    let tables = elem.querySelectorAll("table.col-width");  
+    for (let table of tables) {
+        let lastTr = table.rows[table.rows.length - 1];
+        lastTr.remove();
+
+        let colgroup = document.createElement('colgroup');
+        
+        /** @type {HTMLCollectionOf<HTMLTableCellElement>} */
+        let lastTrCells = lastTr.children;
+        for (let cell of lastTrCells) {
+            let col = document.createElement('col');
+            col.span = cell.colSpan;
+            let width = cell.textContent.trim();
+            if (width !== '') {
+                col.style.width = width;
+            }
+            colgroup.append(col);
+        }
+
+        if (table.caption) {
+            table.caption.insertAdjacentElement('afterend', colgroup);
+        }
+        else {
+            table.insertAdjacentElement('afterbegin', colgroup);
+        }
+    }
+}
+
+/** @param {HTMLElement} elem  */
+function setSvgViewBox(elem) {
+    let svgs = elem.getElementsByTagName('svg');
+    for (let svg of svgs) {
+        if (!svg.hasAttribute('viewBox')) {
+            let width = svg.width.baseVal.value;
+            let height = svg.height.baseVal.value;
+            svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        }
+    }
+}
+
+/**@param {string[]} scripts */
+function executeScripts(scripts) {
+    for (let script of scripts) {
+        let elem = document.createElement('script');
+        elem.textContent = script;
+        document.body.append(elem);
+    }
+}
+
+/** @param {HTMLElement} elem  */
+function setButtonEvent(elem) {
+    for (let button of elem.getElementsByTagName('button')) {
+        if (!button.hasAttributes())
+            continue;
+        let attrToRemove = [];
+        for (let i = 0; i < button.attributes.length; ++i) {
+            let attr = button.attributes[i];
+            if (attr.name.startsWith('on')) {
+                let eventName = attr.name.substring(2);
+                button.addEventListener(eventName, window[attr.value]);
+                attrToRemove.push(attr.name);
+            }
+        }
+        for (let attrName of attrToRemove) {
+            button.removeAttribute(attrName);
         }
     }
 }

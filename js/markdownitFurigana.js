@@ -451,4 +451,3 @@ function index (md, options) {
 }
 
 export default index;
-//# sourceMappingURL=markdownItFurigana.modern.js.map

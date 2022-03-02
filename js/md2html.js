@@ -92,13 +92,15 @@ function preprocessMd(md, styles, scripts) {
         const circledNumbers = '⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 
         let rules = [
-            /^\[\[\[$/,         ()=>'<div class="boxed">\n',
-            /^\]\]\]$/,         ()=>'</div>\n',
-            /^\.$/,             ()=>'<p></p>\n',
-            /(?<!\\)\\\r?\n/,   ()=>'',
-            /^>>>$/,            ()=>'<blockquote>\n',
-            /^<<<$/,            ()=>'</blockquote>\n',
+            /^\[\[\[$/, () => '<div class="boxed">\n',
+            /^\]\]\]$/, () => '</div>\n',
+            /^\.$/, () => '<p></p>\n',
+            /(?<!\\)\\\r?\n/, () => '',
+            /^>>>$/, () => '<blockquote>\n',
+            /^<<<$/, () => '</blockquote>\n',
 
+            /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
+                                g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
 
             /(?<!\\)'(?<text>[^']+)(?<!\\)'/,
                                 g => inside_triple_quote ? `<span lang="zh-CN">${g.text}</span>` : `<span lang="ja">${g.text}</span>`,

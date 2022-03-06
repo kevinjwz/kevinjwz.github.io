@@ -116,7 +116,7 @@
             text-emphasis-position: under right;
         }
 
-        #mdcontent strong, #mdcontent b {
+        #mdcontent :is(b, strong, h1, h2, h3, h4, h5, h6, th){
             font-weight: bold;
         }
 
@@ -146,8 +146,8 @@
             border-collapse: collapse;
         }
 
-        #mdcontent table {
-            white-space:nowrap;
+        #mdcontent table > tbody:not(:first-of-type) > tr:first-child {
+            border-top-width: 3px;
         }
 
         #mdcontent summary:hover {
@@ -186,6 +186,10 @@
 
         #mdcontent figcaption {
             text-align: center;
+        }
+
+        #mdcontent ul, #mdcontent ol {
+            padding-left: 16px;
         }
 
         .markdown-body {

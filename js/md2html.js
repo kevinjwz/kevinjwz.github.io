@@ -92,12 +92,13 @@ function preprocessMd(md, styles, scripts) {
         const circledNumbers = '⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 
         let rules = [
-            /^\[\[\[$/, () => '<div class="boxed">\n',
-            /^\]\]\]$/, () => '</div>\n',
-            /^\.$/, () => '<p></p>\n',
-            /(?<!\\)\\\r?\n/, () => '',
-            /^>>>$/, () => '<blockquote>\n',
-            /^<<<$/, () => '</blockquote>\n',
+            /^\[\[\[$/,         () => '<div class="boxed">\n',
+            /^\]\]\]$/,         () => '</div>\n',
+            /^\.$/,             () => '<p></p>\n',
+            /(?<!\\)\\\r?\n/,   () => '',
+            /^>>>$/,            () => '<blockquote>\n',
+            /^<<<$/,            () => '</blockquote>\n',
+            /<>/,               () => '<span></span>',
 
             /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
                                 g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
@@ -114,7 +115,7 @@ function preprocessMd(md, styles, scripts) {
                                     return replace;
                                 },
                                 
-            /\[(?<tone_text>[^\]]+)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
+            /\[(?<tone_text>.+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
 
             /<style>(?<style_content>[^]*?)<\/style>/,
                                 g => {
@@ -274,6 +275,7 @@ function convertTableColWidth(elem) {
             let width = cell.textContent.trim();
             if (width !== '') {
                 col.style.width = width;
+                col.style.minWidth = width;
             }
             colgroup.append(col);
         }

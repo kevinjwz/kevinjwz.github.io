@@ -6,28 +6,208 @@
         <link rel="icon" href="data:">
         <link rel="stylesheet" href="./github-markdown.css">
         <style>
-        #header, #mdcontent {
-            box-sizing: border-box;
-            min-width: 200px;
-            max-width: 980px;
-            margin: 0 auto;
-            padding: 45px;
-            padding-top: 35px;
-        }
 
-        @media (max-width: 767px) {
-            #header, #mdcontent {
-                padding: 15px;
-            }
+        body.markdown-body {
+            --width-body: min(100%, 1200px);          
+            --width-sidemenu: min(0.25*var(--width-body), 250px);
+
+            --padding-h-header: 25px;
+            --padding-top-header: 15px;
+
+            --padding-left-mdtoc: 15px;
+            --padding-right-mdtoc: 10px;
+            --padding-v-mdtoc: 35px;
+
+            --padding-mdcontent: 45px;
+
+            width: var(--width-body);
+            margin: 0 auto;
         }
 
         #header {
-            padding-top: 10px;
-            padding-bottom: 0px;
+            padding-top: var(--padding-top-header);
+            padding-left: var(--padding-h-header);
+            padding-right: var(--padding-h-header);
+        }
+
+        #show-toc, #hide-toc {
+            display: none;
+        }
+
+        #side-sticky {
+            width: var(--width-sidemenu);
+            max-height: 100vh;
+            float: left;
+            position: sticky;
+            top: 0px;
+            overflow: auto;
+        }
+
+        @media (max-width: 767px) {
+            body.markdown-body {
+                --width-body: 100%;
+                --width-sidemenu: 0px;
+
+                --padding-h-header:15px;
+                --padding-v-mdtoc: 15px;
+                --padding-mdcontent: 15px;
+
+                --height-side-sticky: 60%;
+            }
+
+            #show-toc {
+                all: unset;
+                display: block;
+                position: fixed;
+                bottom: 15px;
+                right: 15px;
+                padding: 0.5em;
+                background-color: var(--color-canvas-subtle);
+                border-color: var(--color-border-default);
+                border-width: 2px;
+                border-radius: 4px;
+                border-style: solid;
+                color: var(--color-fg-muted);
+                z-index: 1;
+            }
+
+            #show-toc.hidden {
+                visibility: hidden;
+            }
+
+            #side-sticky {
+                all: unset;
+                visibility: hidden;    
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                max-height: 60%;
+                overflow: auto;
+                background-color: var(--color-canvas-default);
+                z-index: 2;
+            }
+
+            #side-sticky.show {
+                visibility: visible;
+            }
+
+            #hide-toc {
+                all: unset;
+                visibility: hidden;
+                display: block;
+                position: fixed;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0,0,0,0.2);
+                border-width: 0;
+                z-index: 1;
+            }
+
+            #hide-toc.show {
+                visibility: visible;
+            }
+
+            @media (prefers-color-scheme: dark) {
+                #hide-toc {
+                    background-color: rgba(0,0,0,0.7);
+                }
+            }
+        }
+
+        #mdtoc {
+            padding: var(--padding-v-mdtoc);
+            padding-left: var(--padding-left-mdtoc);
+            padding-right: var(--padding-right-mdtoc);
+
+            --padding-v-a: 0.5em;
+            --padding-h-a: 1em;
+
+            --border-left-width-li: 2px;
+            --border-color-li: var(--color-border-default);
+
+            --border-left-width-current: 4px;
+            --background-color-current:var(--color-canvas-subtle);
+            --border-color-current:var(--color-fg-muted);
+
+            --text-color-a: var(--color-fg-muted);
+            --text-color-a-hover: var(--color-accent-fg);
+            --text-color-current: var(--color-fg-muted);
+        }
+
+        #mdtoc li {
+            list-style-type: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        #mdtoc ul {
+            padding-left: 0;
+            margin: 0;
+        }
+
+        #mdtoc ul ul {
+            margin-left: var(--padding-h-a);
+        }
+
+        #mdtoc > ul ul > li {
+            border-left-style: solid;
+            border-left-width: var(--border-left-width-li);
+            border-left-color: var(--border-color-li);
+            font-size: 80%;
+        }
+
+        @media (max-width: 767px) {
+            #mdtoc > ul ul > li {
+                font-size: 100%;
+            }
+        }
+
+        #mdtoc li > a {
+            display: block;
+            position: relative;
+            padding: var(--padding-v-a) var(--padding-h-a);
+            color: var(--text-color-a);
+        }
+
+        #mdtoc li > a:hover {
+            color: var(--text-color-a-hover) !important;
+            text-decoration: none;
+        }
+
+        #mdtoc li.toc-current > a {
+            font-weight: bold;
+            color: var(--text-color-current);
+        }
+
+        #mdtoc > ul ul > li.toc-current > a {
+            background-color: var(--background-color-current);
+        }
+
+        #mdtoc > ul ul > li.toc-current > a::before {
+            content: "";
+            position: absolute;
+            top: 0;
+            --diff-width: calc(var(--border-left-width-current) - var(--border-left-width-li));
+            left: calc(0px - var(--border-left-width-li) - var(--diff-width)*0.5);
+            height: 100%;       
+            width: var(--border-left-width-current);
+            background-color: var(--border-color-current);
+        }
+
+        #mdcontent {
+            margin-left: var(--width-sidemenu);
+            padding: var(--padding-mdcontent);
         }
 
         #header a {
             margin-right: 20px;
+        }
+
+        #mdcontent :first-child {
+            margin-top: 0;
         }
 
         #mdcontent img {
@@ -39,31 +219,6 @@
             text-decoration-thickness: 1px;
             text-underline-offset: 2px;
         }
-
-        /*
-        #mdcontent span.tone {
-            border-color: var(--color-accent-fg);
-            border-style: none;
-            border-width: 1px;
-            padding: 1px 0px;
-            margin: 2.5px 0px;
-            display: inline-block;
-            line-height: calc(1.5em - 2px);      
-        }
-
-        #mdcontent span.tone.l {
-            border-bottom-style: solid;
-            padding-bottom: 0px;
-        }
-
-        #mdcontent span.tone.h {
-            border-top-style: solid;
-            padding-top: 0px;
-        }
-
-        #mdcontent span.tone.v {
-            border-right-style: solid;
-        }*/
 
         #mdcontent span.tone {
             position: relative;
@@ -198,6 +353,7 @@
             --blue: var(--color-prettylights-syntax-constant);
             --bg-red: var(--color-prettylights-syntax-markup-deleted-bg);
             --bg-green: var(--color-prettylights-syntax-markup-inserted-bg);
+            --bg-blue: #0550ae10;
         }
 
         @media (prefers-color-scheme: light) {
@@ -215,13 +371,18 @@
     </head>
     <body class="markdown-body">
         <div id="header" >
-            <a href="/">HOME</a>
-            <a href="/?/新标日/index">新标日课程笔记</a>
+            <a href="/index.md">HOME</a>
+            <a href="/新标日/index.md">新标日课程笔记</a>
         </div>
-        
-        <div id="mdcontent">
+            <button id="show-toc">目录</button>
+            <button id="hide-toc"></button>
+            <div id="side-sticky">
+                <div id="mdtoc"></div>
+            </div>
+            
+            <div id="mdcontent"></div>
 
-        </div>
+        
         <script type="module" src="/js/markdown-it.min.js"></script>
         <script type="module" src="/js/markdown-it-multimd-table.min.js"></script>
         <script type="module" src="/js/markdown-it-mark.min.js"></script>

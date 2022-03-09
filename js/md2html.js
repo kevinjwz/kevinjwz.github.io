@@ -1,14 +1,15 @@
 import furigana from "./markdownitFurigana.js";
 window.mdit = markdownit({ html: true, breaks: true })
-    .use(furigana)
+    .use(furigana, {fallbackParens: '{}'})
     .use(window.markdownitMultimdTable, { rowspan: true, headerless: true })
     .use(window.markdownitMark)
     .use(window.markdownItAttrs)
     .use(window.markdownitEmoji, { defs: { v: '✔️', x: '❌' } });
 
 
-
 import normalize from "./path-normalize.js";
+import * as helpers from "./helpers.js";
+import * as toc from "./toc.js";
 
 /*
 url format: /1.html?/absolute/path/of/mdfile
@@ -20,10 +21,13 @@ mdpath = mdpath === "" ? "/index" : mdpath;
 let mdxhr = new XMLHttpRequest();
 mdxhr.addEventListener("load", onMdLoaded);
 mdxhr.open("GET", mdpath + ".md");
-if (pageAccessedByReload()) {
+if (helpers.pageAccessedByReload()) {
     mdxhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0");
 }
 mdxhr.send();
+
+convertHref(document.getElementById('header'));
+setTocButtonsEvent();
 
 /** @this {XMLHttpRequest} */
 function onMdLoaded() {
@@ -50,11 +54,16 @@ function onMdLoaded() {
     }
 
     mdcontent.innerHTML = mdit.render(md);
-    let h1 = mdcontent.getElementsByTagName("H1");
-    if (h1.length > 0) {
-        document.title = h1[0].innerText;
+    let headings = Array.from(mdcontent.children).filter(elem => elem instanceof HTMLHeadingElement);
+
+    let h1 = headings.find(h => h.tagName === 'H1');
+    if (h1) {
+        document.title = h1.innerText;
     }
     
+    let mdtoc = document.getElementById('mdtoc');
+
+    toc.generateToc(mdtoc, headings);
     convertHref(mdcontent);
     convertImgSrc(mdcontent);
     convertTableColWidth(mdcontent);
@@ -63,6 +72,8 @@ function onMdLoaded() {
     
     executeScripts(scripts);
     setButtonEvent(mdcontent);
+
+    toc.addListenersForToc(mdtoc, mdcontent, headings);
 
     if (location.hash !== "") {
         location.replace(location.href);
@@ -84,7 +95,7 @@ function onMdLoaded() {
 function preprocessMd(md, styles, scripts) {
 
     let pair = init();
-    return md.replaceAll(pair.multiRegex, pair.multiReplacer);
+    return md.replace(pair.multiRegex, pair.multiReplacer);
 
     function init(){
         let inside_triple_quote = false;
@@ -188,11 +199,11 @@ function preprocessMd(md, styles, scripts) {
     }    
 }
 
-let current_md_dir = mdpath.match(/(.*\/)[^\/]*/)[1];
-let http_pattern = /^https?:\/\//;
-
 /** @param {HTMLElement} elem  */
 function convertHref(elem) {
+    let current_md_dir = mdpath.match(/(.*\/)[^\/]*/)[1];
+    let http_pattern = /^https?:\/\//;
+
     let links = elem.getElementsByTagName("a");
     for (let a of links) {
         let href = a.getAttribute('href');
@@ -219,6 +230,9 @@ function convertHref(elem) {
 
 /** @param {HTMLElement} elem  */
 function convertImgSrc(elem) {
+    let current_md_dir = mdpath.match(/(.*\/)[^\/]*/)[1];
+    let http_pattern = /^https?:\/\//;
+    
     let imgs = elem.getElementsByTagName("img");
     for (let img of imgs) {
         let src = img.getAttribute('src');
@@ -330,10 +344,29 @@ function setButtonEvent(elem) {
     }
 }
 
-function pageAccessedByReload() {
-    return (window.performance.navigation && window.performance.navigation.type === 1)
-        || window.performance
-            .getEntriesByType('navigation')
-            .map((nav) => nav.type)
-            .includes('reload');
+function setTocButtonsEvent() {
+    let btnShowToc = document.getElementById('show-toc');
+    let btnHideToc = document.getElementById('hide-toc');
+    let tocContainer = document.getElementById('side-sticky');
+    let mdtoc = document.getElementById('mdtoc');
+
+    btnShowToc.addEventListener('click', showToc);
+    btnHideToc.addEventListener('click', hideToc);
+    mdtoc.addEventListener('click', ev => {
+        if (ev.target.tagName === 'A') {
+            hideToc();
+        }
+    });
+
+    function showToc() {
+        btnShowToc.classList.add('hidden');
+        btnHideToc.classList.add('show');
+        tocContainer.classList.add('show');
+    }
+
+    function hideToc() {
+        btnShowToc.classList.remove('hidden');
+        btnHideToc.classList.remove('show');
+        tocContainer.classList.remove('show');
+    }
 }

@@ -27,7 +27,7 @@ if (helpers.pageAccessedByReload()) {
 mdxhr.send();
 
 convertHref(document.getElementById('header'));
-setTocButtonsEvent();
+toc.setTocButtonsEvent();
 
 /** @this {XMLHttpRequest} */
 function onMdLoaded() {
@@ -80,12 +80,6 @@ function onMdLoaded() {
     }
 }
 
-// function convertSpan(md) {
-//     let pattern = /(?<!\\)'([^']+)(?<!\\)'/g;
-//     let span = '<span lang="ja">$1</span>';
-//     return md.replace(pattern, span);
-// }
-
 
 /**
  * @param {string} md
@@ -99,6 +93,7 @@ function preprocessMd(md, styles, scripts) {
 
     function init(){
         let inside_triple_quote = false;
+        let inside_single_quote = false;
 
         const circledNumbers = '⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 
@@ -106,7 +101,7 @@ function preprocessMd(md, styles, scripts) {
             /^\[\[\[$/,         () => '<div class="boxed">\n',
             /^\]\]\]$/,         () => '</div>\n',
             /^\.$/,             () => '<p></p>\n',
-            /(?<!\\)\\\r?\n/,   () => '',
+            /\\\r?\n/,          () => '',
             /^>>>$/,            () => '<blockquote>\n',
             /^<<<$/,            () => '</blockquote>\n',
             /<>/,               () => '<span></span>',
@@ -114,17 +109,25 @@ function preprocessMd(md, styles, scripts) {
             /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
                                 g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
 
-            /(?<!\\)'(?<text>[^']+)(?<!\\)'/,
-                                g => inside_triple_quote ? `<span lang="zh-CN">${g.text}</span>` : `<span lang="ja">${g.text}</span>`,
-            
-            /(?<!\{\s*)(?<kana>[\u3040-\u30ff]+)(?![\u3040-\u30ff])/,
-                                g => inside_triple_quote ? g.kana : `<span lang="ja">${g.kana}</span>`,
-
             /^'''$/,            () => { 
-                                    let replace = inside_triple_quote ? '</div>\n' : '<div lang="ja">\n';
+                                    let tag = inside_triple_quote ? '</div>\n' : '<div lang="ja">\n';
                                     inside_triple_quote = !inside_triple_quote;
-                                    return replace;
+                                    inside_single_quote = false;
+                                    return tag;
                                 },
+                                
+            /\\'/,              () => `\\'`,
+            /'/,                g => {
+                                    let tag = inside_single_quote ? '</span>' :
+                                        inside_triple_quote ? '<span lang="zh-CN">' : '<span lang="ja">';
+                                    inside_single_quote = !inside_single_quote;
+                                    return tag;      
+                                },
+
+            /(?<furigana>\{\s*[\u3040-\u30ff・]+\s*\})/,
+                                g => g.furigana,
+            /(?<kana>[\u3040-\u30ff]+)/,
+                                g => inside_triple_quote!=inside_single_quote ? g.kana : `<span lang="ja">${g.kana}</span>`,
                                 
             /\[(?<tone_text>.+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
 
@@ -149,7 +152,7 @@ function preprocessMd(md, styles, scripts) {
         
         /**@param {{tone_text:string, tone_num:string|undefined, tone_hl:string|undefined}} groups */
         function processTone(groups) {
-            let delim = /(?<=.)(?![ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ])(?=.)/;
+            let delim = /(?![ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ])/;
             let moras = groups.tone_text.split(delim);
 
             let hl;
@@ -344,29 +347,3 @@ function setButtonEvent(elem) {
     }
 }
 
-function setTocButtonsEvent() {
-    let btnShowToc = document.getElementById('show-toc');
-    let btnHideToc = document.getElementById('hide-toc');
-    let tocContainer = document.getElementById('side-sticky');
-    let mdtoc = document.getElementById('mdtoc');
-
-    btnShowToc.addEventListener('click', showToc);
-    btnHideToc.addEventListener('click', hideToc);
-    mdtoc.addEventListener('click', ev => {
-        if (ev.target.tagName === 'A') {
-            hideToc();
-        }
-    });
-
-    function showToc() {
-        btnShowToc.classList.add('hidden');
-        btnHideToc.classList.add('show');
-        tocContainer.classList.add('show');
-    }
-
-    function hideToc() {
-        btnShowToc.classList.remove('hidden');
-        btnHideToc.classList.remove('show');
-        tocContainer.classList.remove('show');
-    }
-}

@@ -172,3 +172,30 @@ export function addListenersForToc(toc, content, headings) {
         }
     }
 }
+
+export function setTocButtonsEvent() {
+    let btnShowToc = document.getElementById('show-toc');
+    let btnHideToc = document.getElementById('hide-toc');
+    let tocContainer = document.getElementById('side-sticky');
+    let mdtoc = document.getElementById('mdtoc');
+
+    btnShowToc.addEventListener('click', showToc);
+    btnHideToc.addEventListener('click', hideToc);
+    mdtoc.addEventListener('click', ev => {
+        if (ev.target.tagName === 'A') {
+            hideToc();
+        }
+    });
+
+    function showToc() {
+        btnShowToc.classList.add('hidden');
+        btnHideToc.classList.add('show');
+        tocContainer.classList.add('show');
+    }
+
+    function hideToc() {
+        btnShowToc.classList.remove('hidden');
+        btnHideToc.classList.remove('show');
+        tocContainer.classList.remove('show');
+    }
+}

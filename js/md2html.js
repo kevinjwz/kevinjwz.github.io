@@ -18,27 +18,34 @@ let htmlpath = location.pathname;
 let mdpath = location.search.substring(1);
 mdpath = mdpath === "" ? "/index" : mdpath;
 
-let mdxhr = new XMLHttpRequest();
-mdxhr.addEventListener("load", onMdLoaded);
-mdxhr.open("GET", mdpath + ".md");
-if (helpers.pageAccessedByReload()) {
-    mdxhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0");
-}
-mdxhr.send();
+// let mdxhr = new XMLHttpRequest();
+// mdxhr.addEventListener("load", onMdLoaded);
+// mdxhr.open("GET", mdpath + ".md");
+// if (helpers.pageAccessedByReload()) {
+//     mdxhr.setRequestHeader("Cache-Control", "no-cache, no-store, max-age=0");
+// }
+// mdxhr.send();
 
+let reload = helpers.pageAccessedByReload();
+let mdLoaded = fetch(mdpath + ".md", { cache: reload ? 'no-cache' : 'default' })
+    .then(response => response.text()).then(onMdLoaded);
+
+if (mdpath.endsWith('/index')) {
+    let utaLoaded = fetch('/ohmy/uta.md', { cache: reload ? 'no-cache' : 'default' })
+        .then(response => response.text()).then(onUtaLoaded);
+    Promise.all([mdLoaded, utaLoaded]).then(([_, uta]) => addUta(uta));
+}
 convertHref(document.getElementById('header'));
 toc.setTocButtonsEvent();
 
-/** @this {XMLHttpRequest} */
-function onMdLoaded() {
+let preprocessMd = mdPreprocessor();
 
+/** @param {string} md */
+function onMdLoaded(md) {
     let mdcontent = document.getElementById("mdcontent");
 
-    let md = this.responseText;
-    let styles = [];
-    let scripts = [];
     console.time('preprocess');
-    md = preprocessMd(md, styles, scripts);
+    let { md: md2, styles, scripts } = preprocessMd(md);
     console.timeEnd('preprocess');
 
     for (let style of styles) {
@@ -53,7 +60,7 @@ function onMdLoaded() {
         }
     }
 
-    mdcontent.innerHTML = mdit.render(md);
+    mdcontent.innerHTML = mdit.render(md2);
     let headings = Array.from(mdcontent.children).filter(elem => elem instanceof HTMLHeadingElement);
 
     let h1 = headings.find(h => h.tagName === 'H1');
@@ -80,126 +87,152 @@ function onMdLoaded() {
     }
 }
 
+function onUtaLoaded(utaMd) {
+    let { md: utaMd2 } = preprocessMd(utaMd);
+    let all = document.createElement('div');
+    all.innerHTML = mdit.render(utaMd2);
+    let uta = all.children[Math.floor(all.childElementCount * Math.random())];
+    uta.remove();
+    convertHref(uta);
+    convertImgSrc(uta);
+    return uta;
+}
 
-/**
- * @param {string} md
- * @param {string[]} styles
- * @param {string[]} scripts
-*/
-function preprocessMd(md, styles, scripts) {
+/** @param {HTMLElement} uta */
+function addUta(uta) {
+    uta.classList.add('uta');
+    let mdcontent = document.getElementById("mdcontent");
+    mdcontent.append(uta);
+}
 
-    let pair = init();
-    return md.replace(pair.multiRegex, pair.multiReplacer);
 
-    function init(){
-        let inside_triple_quote = false;
-        let inside_single_quote = false;
+function mdPreprocessor(){
+    let inside_triple_quote = false;
+    let inside_single_quote = false;
 
-        const circledNumbers = '⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
+    let styles, scripts;
+    function init() {
+        inside_triple_quote = false;
+        inside_single_quote = false;
+        styles = [];
+        scripts = [];
+    }
+    function clear() {
+        styles = null; scripts = null;
+    }
 
-        let rules = [
-            /^\[\[\[$/,         () => '<div class="boxed">\n',
-            /^\]\]\]$/,         () => '</div>\n',
-            /^\.$/,             () => '<p></p>\n',
-            /\\\r?\n/,          () => '',
-            /^>>>$/,            () => '<blockquote>\n',
-            /^<<<$/,            () => '</blockquote>\n',
-            /<>/,               () => '<span></span>',
+    const circledNumbers = '⓪①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳';
 
-            /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
-                                g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
+    let rules = [
+        /^\[\[\[$/,         () => '<div class="boxed">\n',
+        /^\]\]\]$/,         () => '</div>\n',
+        /^\.$/,             () => '<p></p>\n',
+        /\\\r?\n/,          () => '',
+        /^>>>$/,            () => '<blockquote>\n',
+        /^<<<$/,            () => '</blockquote>\n',
+        /<>/,               () => '<span></span>',
 
-            /^'''$/,            () => { 
-                                    let tag = inside_triple_quote ? '</div>\n' : '<div lang="ja">\n';
-                                    inside_triple_quote = !inside_triple_quote;
-                                    inside_single_quote = false;
-                                    return tag;
-                                },
-                                
-            /\\'/,              () => `\\'`,
-            /'/,                g => {
-                                    let tag = inside_single_quote ? '</span>' :
-                                        inside_triple_quote ? '<span lang="zh-CN">' : '<span lang="ja">';
-                                    inside_single_quote = !inside_single_quote;
-                                    return tag;      
-                                },
+        /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
+                            g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
 
-            /(?<furigana>\{\s*[\u3040-\u30ff・]+\s*\})/,
-                                g => g.furigana,
-            /(?<kana>[\u3040-\u30ff]+)/,
-                                g => inside_triple_quote!=inside_single_quote ? g.kana : `<span lang="ja">${g.kana}</span>`,
-                                
-            /\[(?<tone_text>.+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
+        /^'''$/,            () => { 
+                                let tag = inside_triple_quote ? '</div>\n' : '<div lang="ja">\n';
+                                inside_triple_quote = !inside_triple_quote;
+                                inside_single_quote = false;
+                                return tag;
+                            },
+                            
+        /\\'/,              () => `\\'`,
+        /'/,                g => {
+                                let tag = inside_single_quote ? '</span>' :
+                                    inside_triple_quote ? '<span lang="zh-CN">' : '<span lang="ja">';
+                                inside_single_quote = !inside_single_quote;
+                                return tag;      
+                            },
 
-            /<style>(?<style_content>[^]*?)<\/style>/,
-                                g => {
-                                    styles.push(g.style_content);
-                                    return '';
-                                },
-            
-            /<script>(?<script_content>[^]*?)<\/script>/,
-                                g => {
-                                    scripts.push(g.script_content);
-                                    return '';
-                                },
+        /(?<furigana>\{\s*[\u3040-\u30ff・]+\s*\})/,
+                            g => g.furigana,
+        /(?<kana>[\u3040-\u30ff]+)/,
+                            g => inside_triple_quote!=inside_single_quote ? g.kana : `<span lang="ja">${g.kana}</span>`,
+                            
+        /\[(?<tone_text>.+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
 
-            /\(\(\s*(?<circled_num>\d+)\s*\)\)/,
-                                g => {
-                                    let num = Number(g.circled_num);
-                                    return num < circledNumbers.length ? circledNumbers[num] : circled_num;
-                                }
-        ];
+        /<style>(?<style_content>[^]*?)<\/style>/,
+                            g => {
+                                styles.push(g.style_content);
+                                return '';
+                            },
         
-        /**@param {{tone_text:string, tone_num:string|undefined, tone_hl:string|undefined}} groups */
-        function processTone(groups) {
-            let delim = /(?![ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ])/;
-            let moras = groups.tone_text.split(delim);
+        /<script>(?<script_content>[^]*?)<\/script>/,
+                            g => {
+                                scripts.push(g.script_content);
+                                return '';
+                            },
 
-            let hl;
-            if (groups.tone_num !== undefined) {
-                let num = Number(groups.tone_num);
-                hl = moras.map((_, i) => i + 1 == num ? 'h v'
-                                        : i == 0 ? 'l v'
-                                        : i + 1 < num || num == 0 ? 'h' : 'l');             
-            }
-            else {
-                hl = groups.tone_hl.toLowerCase().split('');
-                for (let i = 0; i < hl.length-1; ++i) {
-                    if (hl[i] !== hl[i + 1]) {
-                        hl[i] = hl[i] === 'h' ? 'h v' : 'l v';
-                    }
+        /\(\(\s*(?<circled_num>\d+)\s*\)\)/,
+                            g => {
+                                let num = Number(g.circled_num);
+                                return num < circledNumbers.length ? circledNumbers[num] : circled_num;
+                            }
+    ];
+    
+    /**@param {{tone_text:string, tone_num:string|undefined, tone_hl:string|undefined}} groups */
+    function processTone(groups) {
+        let delim = /(?![ぁぃぅぇぉゃゅょゎァィゥェォャュョヮ])/;
+        let moras = groups.tone_text.split(delim);
+
+        let hl;
+        if (groups.tone_num !== undefined) {
+            let num = Number(groups.tone_num);
+            hl = moras.map((_, i) => i + 1 == num ? 'h v'
+                                    : i == 0 ? 'l v'
+                                    : i + 1 < num || num == 0 ? 'h' : 'l');             
+        }
+        else {
+            hl = groups.tone_hl.toLowerCase().split('');
+            for (let i = 0; i < hl.length-1; ++i) {
+                if (hl[i] !== hl[i + 1]) {
+                    hl[i] = hl[i] === 'h' ? 'h v' : 'l v';
                 }
             }
-
-            let spans = ['<span lang="ja">'];
-            moras.forEach((mora, i) =>
-                spans.push(i < hl.length ? `<span class="tone ${hl[i]}">${mora}</span>` : mora)
-            );
-            spans.push('</span>');  
-            return spans.join('');
         }
 
-        let ruleKeys = [];
+        let spans = ['<span lang="ja">'];
+        moras.forEach((mora, i) =>
+            spans.push(i < hl.length ? `<span class="tone ${hl[i]}">${mora}</span>` : mora)
+        );
+        spans.push('</span>');  
+        return spans.join('');
+    }
 
-        function buildMultiRegex() {
-            let regexSrcList = [];
-            for (let i = 0; i < rules.length; i += 2){
-                let ruleKey = 'rule_' + (i / 2).toString();
-                ruleKeys.push(ruleKey);
-                regexSrcList.push(`(?:(?<${ruleKey}>)${rules[i].source})`);
-            }
-            return new RegExp(regexSrcList.join('|'), 'mgu');
+    let ruleKeys = [];
+
+    function buildMultiRegex() {
+        let regexSrcList = [];
+        for (let i = 0; i < rules.length; i += 2){
+            let ruleKey = 'rule_' + (i / 2).toString();
+            ruleKeys.push(ruleKey);
+            regexSrcList.push(`(?:(?<${ruleKey}>)${rules[i].source})`);
         }
+        return new RegExp(regexSrcList.join('|'), 'mgu');
+    }
 
-        function multiReplacer() {
-            let groups = arguments[arguments.length - 1];
-            let ruleIndex = ruleKeys.findIndex((key) => groups[key] !== undefined);
-            let replacer = rules[ruleIndex * 2 + 1];
-            return replacer(groups);
-        }
+    let multiRegex = buildMultiRegex();
 
-        return { multiRegex: buildMultiRegex(), multiReplacer };
-    }    
+    function multiReplacer() {
+        let groups = arguments[arguments.length - 1];
+        let ruleIndex = ruleKeys.findIndex((key) => groups[key] !== undefined);
+        let replacer = rules[ruleIndex * 2 + 1];
+        return replacer(groups);
+    }
+
+    return function preprocess(md) {
+        init();
+        md = md.replace(multiRegex, multiReplacer);
+        let result = { md, styles, scripts };
+        clear();
+        return result;
+    }
 }
 
 /** @param {HTMLElement} elem  */
@@ -210,8 +243,12 @@ function convertHref(elem) {
     let links = elem.getElementsByTagName("a");
     for (let a of links) {
         let href = a.getAttribute('href');
-        if (href.startsWith("#") || http_pattern.test(href) || a.hasAttribute("onclick")) {
-            return;
+        let otherSite = http_pattern.test(href);
+        if (otherSite) {
+            a.target = '_blank';
+        }
+        if (href.startsWith("#") || otherSite || a.hasAttribute("onclick")) {
+            continue;
         }
 
         let mdpath = a.pathname;
@@ -240,7 +277,7 @@ function convertImgSrc(elem) {
     for (let img of imgs) {
         let src = img.getAttribute('src');
         if (http_pattern.test(src) || src.startsWith('/')) {
-            return;
+            continue;
         }
         img.src = normalize(current_md_dir + src);
     }

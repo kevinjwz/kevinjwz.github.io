@@ -61,7 +61,25 @@ export function throttle(func, waitMs) {
         }
     };
 }
-  
+
+let elemRegex = /<(?<tag>\w+)(?<attr>([^'"]|'.*?'|".*?")*?)>(?<text>[^]*?)<\/\w+>/;
+let attrRegex = /(?<name>[\w-]+)(\s*=\s*('(?<value1>.*?)'|"(?<value2>.*?)"))?/g;
+
+export function parseElement(elem) {
+    let g = elem.match(elemRegex).groups;
+    let attrs = [];
+    while (g.attr !== undefined) {
+        let matchAttr = attrRegex.exec(g.attr);
+        if (!matchAttr) break;
+        let name = matchAttr.groups.name;
+        let value = matchAttr.groups.value1;
+        if (value === undefined)
+            value = matchAttr.groups.value2;
+        attrs.push({ name, value });
+    }
+    return { tag: g.tag, attrs, text: g.text };
+}
+
 
 export function pageAccessedByReload() {
     return (window.performance.navigation && window.performance.navigation.type === 1)

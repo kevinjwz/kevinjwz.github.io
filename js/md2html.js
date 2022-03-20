@@ -48,17 +48,7 @@ function onMdLoaded(md) {
     let { md: md2, styles, scripts } = preprocessMd(md);
     console.timeEnd('preprocess');
 
-    for (let style of styles) {
-        let styleElem = document.createElement('style');
-        styleElem.innerHTML = style;
-
-        document.head.append(styleElem);
-        for (let rule of styleElem.sheet.cssRules) {
-            rule.selectorText = rule.selectorText.split(',')
-                .map(sel => '#mdcontent ' + sel.trim())
-                .join(',');
-        }
-    }
+    addStyles(styles);
 
     mdcontent.innerHTML = mdit.render(md2);
     let headings = Array.from(mdcontent.children).filter(elem => elem instanceof HTMLHeadingElement);
@@ -157,15 +147,15 @@ function mdPreprocessor(){
                             
         /\[(?<tone_text>.+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
 
-        /<style>(?<style_content>[^]*?)<\/style>/,
+        /(?<style><style\W[^]*?<\/style>)/,
                             g => {
-                                styles.push(g.style_content);
+                                styles.push(g.style);
                                 return '';
                             },
         
-        /<script>(?<script_content>[^]*?)<\/script>/,
+        /(?<script><script\W[^]*?<\/script>)/,
                             g => {
-                                scripts.push(g.script_content);
+                                scripts.push(g.script);
                                 return '';
                             },
 
@@ -355,11 +345,31 @@ function setSvgViewBox(elem) {
     }
 }
 
+/**@param {string[]} styles */
+function addStyles(styles) {
+    let div = document.createElement('div');
+    for (let style of styles) {
+        div.innerHTML = style;
+        let styleElem = div.children[0];
+        document.head.append(styleElem);
+
+        for (let rule of styleElem.sheet.cssRules) {
+            rule.selectorText = rule.selectorText.split(',')
+                .map(sel => '#mdcontent ' + sel.trim())
+                .join(',');
+        }
+    }  
+}
+
 /**@param {string[]} scripts */
 function executeScripts(scripts) {
     for (let script of scripts) {
+        let parsed = helpers.parseElement(script);
         let elem = document.createElement('script');
-        elem.textContent = script;
+        for (let attr of parsed.attrs) {
+            elem.setAttribute(attr.name, attr.value);
+        }
+        elem.textContent = parsed.text;
         document.body.append(elem);
     }
 }

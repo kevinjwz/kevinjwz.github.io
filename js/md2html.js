@@ -97,13 +97,15 @@ function addUta(uta) {
 
 
 function mdPreprocessor(){
-    let inside_triple_quote = false;
-    let inside_single_quote = false;
+    let inside_triple_quote;
+    let inside_single_quote;
+    let inside_underline;
 
     let styles, scripts;
     function init() {
         inside_triple_quote = false;
         inside_single_quote = false;
+        inside_underline = false;
         styles = [];
         scripts = [];
     }
@@ -124,7 +126,9 @@ function mdPreprocessor(){
 
         /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
                             g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
-
+        /\\r\{(?<raw_text>[^]+?)\}/,
+                            g => g.raw_text,
+                            
         /^'''$/,            () => { 
                                 let tag = inside_triple_quote ? '</div>\n' : '<div lang="ja">\n';
                                 inside_triple_quote = !inside_triple_quote;
@@ -140,12 +144,20 @@ function mdPreprocessor(){
                                 return tag;      
                             },
 
+        /_+(?![\w_])/,       () => {
+                                let tag = inside_underline ? '</u>' : '<u>';
+                                inside_underline = !inside_underline;
+                                return tag;
+                            },
+        
         /(?<furigana>\{\s*[\u3040-\u30ff・]+\s*\})/,
                             g => g.furigana,
         /(?<kana>[\u3040-\u30ff]+)/,
                             g => inside_triple_quote!=inside_single_quote ? g.kana : `<span lang="ja">${g.kana}</span>`,
                             
-        /\[(?<tone_text>.+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
+        /\[(?<tone_text>[^\]]+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
+        /(?<kana_romaji>\[[\u3040-\u30ff]+\]\{\s*[a-zA-Z][a-zA-Z\s]*\})/,
+                            g => inside_triple_quote!=inside_single_quote ? g.kana_romaji : `<span lang="ja">${g.kana_romaji}</span>`,
 
         /(?<style><style\W[^]*?<\/style>)/,
                             g => {

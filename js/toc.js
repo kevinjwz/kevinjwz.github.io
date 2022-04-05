@@ -115,10 +115,10 @@ export function addListenersForToc(toc, content, headings) {
         }
 
         let displayedEnd = helpers.binarySearch(displayedBegin + 1, sections.length, i => sections[i][0] >= vpBottom);
-        if (!displayedEnd)
+        if (displayedEnd === null)
             displayedEnd = sections.length;
 
-        console.log('begin: ' + headings[displayedBegin].innerText);
+        //console.log('begin: ' + headings[displayedBegin].innerText);
 
         let activeIndex = helpers.search(displayedBegin, displayedEnd, isCandidate);
         updateActiveLi(activeIndex);

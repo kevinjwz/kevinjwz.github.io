@@ -55,7 +55,7 @@ function onMdLoaded(md) {
 
     let h1 = headings.find(h => h.tagName === 'H1');
     if (h1) {
-        document.title = h1.innerText;
+        document.title = h1.textContent.replace(/\{.*?\}/g, '');
     }
     
     let mdtoc = document.getElementById('mdtoc');
@@ -144,18 +144,32 @@ function mdPreprocessor(){
                                 return tag;      
                             },
 
-        /_+(?![\w_])/,       () => {
+        /_+/,       () => {
                                 let tag = inside_underline ? '</u>' : '<u>';
                                 inside_underline = !inside_underline;
                                 return tag;
                             },
         
-        /(?<furigana>\{\s*[\u3040-\u30ff・]+\s*\})/,
+        /(?<link>\]\(.+?\))/, g => g.link,
+        /(?<reflink_label>\]\[.+?\])/, g => g.reflink_label,
+        /(?<reflink_label_def>\[.+?\]:.*$)/, g => g.reflink_label_def,
+        
+        /(?<furigana>\{\s*[\u3040-\u30ff・/]+\s*\})/,
                             g => g.furigana,
-        /(?<kana>[\u3040-\u30ff]+)/,
+        /(?<easyfuri_kanji>\p{sc=Han}+)\{\s*(?<easyfuri_kana>[\u3040-\u30ff・/]+)\s*\}/u,
+                            g => `[${g.easyfuri_kanji}]{${g.easyfuri_kana}}`,
+        
+        /(?<easytone_kana>[ぁ-ゖァ-ヺー]+)\{\s*(?:(?<easytone_num>\d+)|(?<easytone_hl>[hHlL]+))\s*\}/,
+                            g => processTone({
+                                tone_text: g.easytone_kana,
+                                tone_num: g.easytone_num,
+                                tone_hl: g.easytone_hl
+                            }),
+        /(?<kana>[ぁ-ゖァ-ヺー]+)/,
                             g => inside_triple_quote!=inside_single_quote ? g.kana : `<span lang="ja">${g.kana}</span>`,
                             
         /\[(?<tone_text>[^\]]+?)\]\{\s*(?:(?<tone_num>\d+)|(?<tone_hl>[hHlL]+))\s*\}/, processTone,
+
         /(?<kana_romaji>\[[\u3040-\u30ff]+\]\{\s*[a-zA-Z][a-zA-Z\s]*\})/,
                             g => inside_triple_quote!=inside_single_quote ? g.kana_romaji : `<span lang="ja">${g.kana_romaji}</span>`,
 
@@ -239,7 +253,7 @@ function mdPreprocessor(){
 
 /** @param {HTMLElement} elem  */
 function convertHref(elem) {
-    let current_md_dir = mdpath.match(/(.*\/)[^\/]*/)[1];
+    let current_md_dir = mdpath.match(/^(.*\/)[^\/]*$/)[1];
     let http_pattern = /^https?:\/\//;
 
     let links = elem.getElementsByTagName("a");
@@ -261,8 +275,8 @@ function convertHref(elem) {
         if (mdpath.endsWith(".md")) {
             mdpath = mdpath.substring(0, mdpath.length - 3);
         }
-        if (!mdpath.startsWith("/")) {
-            mdpath = normalize(current_md_dir + mdpath);
+        if (!href.startsWith("/")) {
+            mdpath = normalize(current_md_dir + mdpath.substring(1));
         }
 
         a.pathname = htmlpath;

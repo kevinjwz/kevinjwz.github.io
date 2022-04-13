@@ -10,6 +10,7 @@ window.mdit = markdownit({ html: true, breaks: true })
 import normalize from "./path-normalize.js";
 import * as helpers from "./helpers.js";
 import * as toc from "./toc.js";
+import * as ruby from "./ruby.js"
 
 /*
 url format: /1.html?/absolute/path/of/mdfile
@@ -66,7 +67,9 @@ function onMdLoaded(md) {
     convertTableColWidth(mdcontent);
     convertTableMarkers(mdcontent);
     setSvgViewBox(mdcontent);
-    
+    ruby.convertRubyToSpan(mdcontent);
+    ruby.setSpanRubyStyle(mdcontent);
+
     executeScripts(scripts);
     setButtonEvent(mdcontent);
 

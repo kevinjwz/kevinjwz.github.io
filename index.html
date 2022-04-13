@@ -26,6 +26,13 @@
             margin: 0 auto;
         }
 
+        @supports not (width: min(1px,2px)){
+            body.markdown-body {
+                --width-body: 100%;
+                --width-sidemenu: calc(0.25*var(--width-body));
+            }
+        }
+
         #header {
             padding-top: var(--padding-top-header);
             padding-left: var(--padding-h-header);
@@ -217,8 +224,8 @@
             margin: 0 auto;
         }
 
-        #mdcontent u {
-            text-decoration-thickness: 1px;
+        #mdcontent u, #mdcontent u span.ruby {
+            text-decoration: underline 1px;
             text-underline-offset: 2px;
         }
 
@@ -319,8 +326,12 @@
             color: var(--color-accent-fg);
         }
 
-        #mdcontent .mark-ruby rt {
+        #mdcontent span.ruby.mark-ruby, #mdcontent .mark-ruby span.ruby {
+            z-index: 0; 
+        }
+        #mdcontent .mark-ruby span.rt {
             background-color: var(--color-attention-subtle);
+            z-index: -1;
         }
 
         #mdcontent p:empty::after {
@@ -377,6 +388,37 @@
             /* position: relative; */
             /* top: 0.5em; */
             font-size: 60%;
+        }
+
+        #mdcontent span.ruby{
+            display: inline-block;
+            position: relative;
+            /* padding-top: 0.80em; */
+            text-align: center;
+
+            --rt-font-size: max(0.5em, min(1rem, 0.75em));
+            padding-top: calc(var(--rt-font-size)*1.07);
+        }
+        @supports not (font-size:max(1em,2em)){
+            #mdcontent span.ruby{
+                --rt-font-size: 0.75em;
+            }
+        }
+        #mdcontent span.ruby > .rt {
+            font-size: var(--rt-font-size);
+            font-family: "Meiryo UI", sans-serif;
+            position: absolute;
+            left: 0;
+            top: 0;
+
+            width: max-content;
+            min-width: 100%;
+            text-align: center;
+
+            transform-origin: left;
+        }
+        #mdcontent span.ruby > .rp {
+            display: none;
         }
 
         .markdown-body {

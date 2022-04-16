@@ -126,6 +126,8 @@ function mdPreprocessor(){
         /^>>>$/,            () => '<blockquote>\n',
         /^<<<$/,            () => '</blockquote>\n',
         /<>/,               () => '<span></span>',
+        /[「【]/,           (_, m) => '<span lang="ja">' + m,
+        /[」】]/,           (_, m) => m + '</span>',
 
         /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
                             g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
@@ -153,6 +155,9 @@ function mdPreprocessor(){
                                 return tag;
                             },
         
+        /(?<attr>\{\s*(?:[.#][-_\w\d]+\s*|[-_\w\d]+(?:\s*=\s*(?:".*?"|'.*?'))?\s*)+\})/,
+                            g => g.attr,
+        
         /(?<link>\]\(.+?\))/, g => g.link,
         /(?<reflink_label>\]\[.+?\])/, g => g.reflink_label,
         /(?<reflink_label_def>\[.+?\]:.*$)/, g => g.reflink_label_def,
@@ -176,15 +181,15 @@ function mdPreprocessor(){
         /(?<kana_romaji>\[[\u3040-\u30ff]+\]\{\s*[a-zA-Z][a-zA-Z\s]*\})/,
                             g => inside_triple_quote!=inside_single_quote ? g.kana_romaji : `<span lang="ja">${g.kana_romaji}</span>`,
 
-        /(?<style><style\W[^]*?<\/style>)/,
-                            g => {
-                                styles.push(g.style);
+        /<style\W[^]*?<\/style>/,
+                            (_, m) => {
+                                styles.push(m);
                                 return '';
                             },
         
-        /(?<script><script\W[^]*?<\/script>)/,
-                            g => {
-                                scripts.push(g.script);
+        /<script\W[^]*?<\/script>/,
+                            (_, m) => {
+                                scripts.push(m);
                                 return '';
                             },
 
@@ -239,10 +244,11 @@ function mdPreprocessor(){
     let multiRegex = buildMultiRegex();
 
     function multiReplacer() {
+        let match = arguments[0];
         let groups = arguments[arguments.length - 1];
         let ruleIndex = ruleKeys.findIndex((key) => groups[key] !== undefined);
         let replacer = rules[ruleIndex * 2 + 1];
-        return replacer(groups);
+        return replacer(groups, match);
     }
 
     return function preprocess(md) {

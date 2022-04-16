@@ -231,7 +231,7 @@
 
         #mdcontent span.tone {
             position: relative;
-            line-height: calc(1.5em + 5px);
+            line-height: 2.5em;
             z-index: 0;
         }
         #mdcontent span.tone::after {
@@ -265,7 +265,7 @@
             border-width: 2px;
             width: fit-content;
             padding: 16px;
-            margin: 10px 0px;
+            margin-bottom: 16px;
         }
 
         #mdcontent .boxed :last-child {
@@ -280,7 +280,7 @@
             text-emphasis-position: under right;
         }
 
-        #mdcontent :is(b, strong, h1, h2, h3, h4, h5, h6, th){
+        #mdcontent h1, #mdcontent h2, #mdcontent h3, #mdcontent b, #mdcontent strong{
             font-weight: bold;
         }
 
@@ -297,10 +297,12 @@
 
         #mdcontent .hidden-table tr {
             background-color: var(--color-canvas-default);
+            vertical-align: baseline;
         }
 
         #mdcontent table {
             white-space:nowrap;
+            overflow: visible;
         }
 
         #mdcontent table caption{

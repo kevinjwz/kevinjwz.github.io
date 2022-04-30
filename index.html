@@ -302,7 +302,7 @@
 
         #mdcontent table {
             white-space:nowrap;
-            overflow: visible;
+            overflow: auto;
         }
 
         #mdcontent table caption{
@@ -429,16 +429,15 @@
             --blue: var(--color-prettylights-syntax-constant);
             --bg-red: var(--color-prettylights-syntax-markup-deleted-bg);
             --bg-green: var(--color-prettylights-syntax-markup-inserted-bg);
-            --bg-blue: #0550ae10;
+            --bg-blue: #E2F1FF;
+            --bg-purple: #E7DEF9;
+            --bg-gray: #e0e0e0;
         }
 
-        @media (prefers-color-scheme: light) {
-            .markdown-body {
-                --bg-gray: #e0e0e0;
-            }
-        }
         @media (prefers-color-scheme: dark) {
             .markdown-body {
+                --bg-blue: #06253D;
+                --bg-purple: #430754;
                 --bg-gray: #303030;
                 --color-attention-subtle: rgba(187,128,9,0.30);
             }

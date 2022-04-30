@@ -97,51 +97,40 @@ export function setSpanRubyStyle(elem) {
 
 /**@param {HTMLElement} ruby */
 function canOverhang(ruby) {
-    let left = ruby.previousSibling;
-    let leftText = lastTextNodeBeforeInclude(left);
+    let leftText = lastTextNodeBefore(ruby);
     let leftSafe = leftText == null || leftText.parentElement.closest('span.ruby') == null;
 
     if (!leftSafe) return false;
 
-    let right = ruby.nextSibling;
-    let rightText = firstTextNodeAfterInclude(right);
+    let rightText = firstTextNodeAfter(ruby);
     let rightSafe = rightText == null || rightText.parentElement.closest('span.ruby') == null;
 
     return rightSafe;
 }
 
 /**@param {Node} node */
-function firstTextNode(node) {
-    if (node.nodeType === Node.TEXT_NODE)
-        return node;
-    if (node.nodeType === Node.ELEMENT_NODE) {
-        for (let child of node.childNodes) {
-            let textNode = firstTextNode(child);
-            if (textNode)
-                return textNode;
-        }
-    }
+function firstTextNodeAfter(node) {
+    let text = firstTextNodeAfterInclude(node.nextSibling);
+    if (text)
+        return text;
+    if (isInline(node.parentElement))
+        return firstTextNodeAfter(node.parentElement);
     return null;
 }
 
 /**@param {Node} node */
-function lastTextNode(node) {
-    if (node.nodeType === Node.TEXT_NODE)
-        return node;
-    if (node.nodeType === Node.ELEMENT_NODE) {
-        let childNodeCount = node.childNodes.length;
-        for (let i = childNodeCount - 1; i >= 0; --i) {
-            let child = node.childNodes[i];
-            let textNode = lastTextNode(child);
-            if (textNode)
-                return textNode;
-        }
-    }
+function lastTextNodeBefore(node) {
+    let text = lastTextNodeBeforeInclude(node.previousSibling);
+    if (text)
+        return text;
+    if (isInline(node.parentElement))
+        return lastTextNodeBefore(node.parentElement);
     return null;
 }
 
 /**@param {Node} node 
  * @return {Node}
+ * @description Find the first text node belongs to `node` and siblings of `node` that come after
 */
 function firstTextNodeAfterInclude(node) {
     for (; node; node = node.nextSibling) {
@@ -170,4 +159,13 @@ function lastTextNodeBeforeInclude(node) {
         }
     }
     return null;
+}
+
+let inlineElems = new Set([
+    'SPAN', 'A', 'B', 'DEL', 'EM', 'I', 'MARK', 'S', 'STRONG', 'U'
+]);
+
+/**@param {HTMLElement} elem */
+function isInline(elem) {
+    return elem != null && inlineElems.has(elem.tagName);
 }

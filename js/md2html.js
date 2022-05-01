@@ -162,7 +162,7 @@ function mdPreprocessor(){
         /(?<reflink_label>\]\[.+?\])/, g => g.reflink_label,
         /(?<reflink_label_def>\[.+?\]:.*$)/, g => g.reflink_label_def,
         
-        /(?<furigana>\{\s*[\u3040-\u30ff・/]+\s*\})/,
+        /(?<furigana>\{=?\s*[\u3040-\u30ff・/]+\s*\})/,
                             g => g.furigana,
         /(?<easyfuri_kanji>\p{sc=Han}+)\{\s*(?<easyfuri_kana>[\u3040-\u30ff・/]+)\s*\}/u,
                             g => `[${g.easyfuri_kanji}]{${g.easyfuri_kana}}`,
@@ -310,13 +310,19 @@ function convertImgSrc(elem) {
 
 /** @param {HTMLElement} elem  */
 function convertTableMarkers(elem) {
-    let tables = elem.querySelectorAll("table[markers]");
+    let tables = elem.getElementsByTagName("table");
     for (let table of tables) {
         let markersStr = table.getAttribute("markers");
         let markers = new Map();
-        for (let kvStr of markersStr.split(/;\s?|,\s?|\s+/)) {
-            let kv = kvStr.match(/(?<key>[^\s])[=:](?<value>[^\s]+)/);
-            markers.set(kv.groups.key, kv.groups.value);
+        if (markersStr) {
+            for (let kvStr of markersStr.split(/;\s?|,\s?|\s+/)) {
+                let kv = kvStr.match(/(?<key>[^\s])[=:](?<value>[^\s]+)/);
+                markers.set(kv.groups.key, kv.groups.value);
+            }
+        }
+
+        if (!markers.has('!')) {
+            markers.set('!', 'split');
         }
 
         for (let cell of table.querySelectorAll("th, td")) {

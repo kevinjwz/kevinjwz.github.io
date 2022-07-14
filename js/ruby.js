@@ -1,39 +1,86 @@
+/*
+
+[買い物]{かいもの} => 
+<ruby>
+買 <rp>{</rp> <rt>か</rt> <rp>}</rp>
+い <rt></rt>
+物 <rp>{</rp> <rt>もの</rt> <rp>}</rp>
+</ruby>
+
+*/
+
 
 /**@param {HTMLElement} elem */
 export function convertRubyToSpan(elem) {
     let rubys = Array.from(elem.getElementsByTagName('ruby'));
     let spanRubyArr = [];
     for (let ruby of rubys) {
-        let spanRuby;
-        for (let rubyChild of ruby.childNodes) {
-            if (rubyChild.nodeType === Node.TEXT_NODE) {
-                if (spanRuby) {
-                    spanRubyArr.push(spanRuby);
-                }
-                spanRuby = document.createElement('span');
-                spanRuby.classList.add('ruby', ...ruby.classList);
-                spanRuby.appendChild(rubyChild.cloneNode());
+        let sections = extractRuby(ruby);
+        for (let sect of sections) {
+            let rb = document.createTextNode(sect.rb);
+            if (!sect.rt) {
+                spanRubyArr.push(rb);
+                continue;
             }
-            else if (rubyChild.tagName === 'RT' || rubyChild.tagName === 'RP') {
-                let spanRtRp = document.createElement('span');
-                spanRtRp.classList.add(rubyChild.tagName.toLowerCase());
-                spanRtRp.textContent = rubyChild.textContent;
-                spanRuby.appendChild(spanRtRp);
-            }
-        }
-        if (spanRuby) {
+            let spanRuby = document.createElement('span');
+            spanRuby.classList.add('ruby', ...ruby.classList);
+            spanRuby.appendChild(rb);
+            if (sect.rp1)
+                addSpan(spanRuby, 'rp', sect.rp1);
+            if (sect.rt)
+                addSpan(spanRuby, 'rt', sect.rt);
+            if (sect.rp2)
+                addSpan(spanRuby, 'rp', sect.rp2);
             spanRubyArr.push(spanRuby);
         }
 
         ruby.replaceWith(...spanRubyArr);
         spanRubyArr.length = 0;
     }
+
+    function addSpan(parent, cls, text) {
+        let span = document.createElement('span');
+        span.classList.add(cls);
+        span.textContent = text;
+        parent.appendChild(span);
+    }
 }
+
+/**@param {HTMLElement} ruby */
+function extractRuby(ruby) {
+    let result = [];
+    let index = 0;
+
+    /**@type {{rb:string, rt:string, rp1:string, rp2:string}} */
+    let sect = null;
+
+    for (let rubyChild of ruby.childNodes) {
+        if (rubyChild.nodeType === Node.TEXT_NODE) {
+            if (sect)
+                result.push(sect);
+            sect = { rb: rubyChild.textContent };           
+        }
+        else if (rubyChild.tagName === 'RT') {
+            sect.rt = rubyChild.textContent;
+        }
+        else if (rubyChild.tagName === 'RP') {
+            if (sect.rp1 === undefined)
+                sect.rp1 = rubyChild.textContent;
+            else
+                sect.rp2 = rubyChild.textContent;
+        }
+    }
+    if (sect)
+        result.push(sect);
+
+    return result;
+}
+
 
 /**@param {HTMLElement} elem */
 export function setSpanRubyStyle(elem) {
     const minScale = 2/3;
-    const overhang = 1 / 3;
+    const overhang = 1 / 4;
     
     /**@type {NodeListOf<HTMLElement>} */
     let spanRubys = elem.querySelectorAll('span.ruby');
@@ -51,42 +98,38 @@ export function setSpanRubyStyle(elem) {
         /**@type {HTMLElement}*/
         let rt = ruby.getElementsByClassName('rt')[0];
 
-        if (canOverhang(ruby)) {
-            let rtWidth = rt.offsetWidth;
-            let rubyWidth = ruby.offsetWidth;
-            let overhangMax = overhang * parseFloat(getComputedStyle(ruby).fontSize);
-            let rubyWidthOverhang = rubyWidth + 2 * overhangMax;
-            
-            if (rtWidth > rubyWidthOverhang) {
-                let scale = rubyWidthOverhang / rtWidth;
-                if (scale < minScale) {
-                    scale = minScale;
-                    stylesToApply.push({
-                        target: ruby, name: 'width',
-                        value: (rtWidth * minScale - 2 * overhangMax) + 'px'
-                    });
-                }
-                stylesToApply.push({ target: rt, name: 'transform', value: `scale(${scale}, 1)` });
+        let rtWidth = rt.offsetWidth;
+        let rubyWidth = ruby.offsetWidth;
+        let overhangMax = overhang * parseFloat(getComputedStyle(ruby).fontSize);
+        let overhangLeftMax = canOverhangLeft(ruby) ? overhangMax : 0;
+        let overhangRightMax = canOverhangRight(ruby) ? overhangMax : 0;
+
+        if (rtWidth <= rubyWidth) {
+            // using CSS, do nothing
+        }
+        else if (rtWidth <= rubyWidth + overhangLeftMax + overhangRightMax) {
+            // no scale
+            let extraWidth = rtWidth - rubyWidth;
+            let extraHalf = extraWidth * 0.5;
+            let left = extraHalf;
+            if (extraHalf > overhangLeftMax) {
+                left = overhangLeftMax;
             }
-            if (rtWidth > rubyWidth) {
-                stylesToApply.push({
-                    target: rt, name: 'left',
-                    value: -Math.min(0.5 * (rtWidth - rubyWidth), overhangMax) + 'px'
-                });
+            else if (extraHalf > overhangRightMax) {
+                left = extraWidth - overhangRightMax;
             }
+            stylesToApply.push({ target: rt, name: 'left', value: -left + 'px' });
         }
         else {
-            let rtWidth = rt.offsetWidth;
-            let rubyWidth = ruby.offsetWidth;
-            if (rtWidth > rubyWidth) {
-                let scale = rubyWidth / rtWidth;
-
-                if (scale < minScale) {
-                    scale = minScale;
-                    stylesToApply.push({ target: ruby, name: 'width', value: rtWidth * minScale + 'px' });
-                }
-                stylesToApply.push({ target: rt, name: 'transform', value: `scale(${scale}, 1)` })
+            let scale = (rubyWidth + overhangLeftMax + overhangRightMax) / rtWidth;
+            let left = overhangLeftMax;
+            if (scale < minScale) {
+                scale = minScale;
+                let rubyWidthExtended = rtWidth * scale - (overhangLeftMax + overhangRightMax);
+                stylesToApply.push({ target: ruby, name: 'width', value: rubyWidthExtended + 'px' });        
             }
+            stylesToApply.push({ target: rt, name: 'transform', value: `scale(${scale}, 1)` });
+            stylesToApply.push({ target: rt, name: 'left', value: -left + 'px' });
         }
     }
 
@@ -96,16 +139,15 @@ export function setSpanRubyStyle(elem) {
 }
 
 /**@param {HTMLElement} ruby */
-function canOverhang(ruby) {
+function canOverhangLeft(ruby) {
     let leftText = lastTextNodeBefore(ruby);
-    let leftSafe = leftText == null || leftText.parentElement.closest('span.ruby') == null;
+    return leftText == null || leftText.parentElement.closest('span.ruby') == null;
+}
 
-    if (!leftSafe) return false;
-
+/**@param {HTMLElement} ruby */
+function canOverhangRight(ruby) {
     let rightText = firstTextNodeAfter(ruby);
-    let rightSafe = rightText == null || rightText.parentElement.closest('span.ruby') == null;
-
-    return rightSafe;
+    return rightText == null || rightText.parentElement.closest('span.ruby') == null;
 }
 
 /**@param {Node} node */

@@ -166,6 +166,8 @@ function mdPreprocessor(){
                             g => g.furigana,
         /(?<easyfuri_kanji>\p{sc=Han}+)\{\s*(?<easyfuri_kana>[\u3040-\u30ff・/]+)\s*\}/u,
                             g => `[${g.easyfuri_kanji}]{${g.easyfuri_kana}}`,
+        /(?<numfuri_number>[0-9０-９.]+)\{\s*(?<numfuri_kana>[\u3040-\u30ff・/]+)\s*\}/,
+                            g => `[${g.numfuri_number}]{${g.numfuri_kana}}`,
         
         /(?<easytone_kana>[ぁ-ゖァ-ヺー]+)\{\s*(?:(?<easytone_num>\d+)|(?<easytone_hl>[hHlL]+))\s*\}/,
                             g => processTone({

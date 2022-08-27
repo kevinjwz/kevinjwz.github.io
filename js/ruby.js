@@ -94,38 +94,53 @@ export function setSpanRubyStyle(elem) {
     /**@type {InlineStyle[]} */
     let stylesToApply = [];
 
+    let neighbors = [null, null];
+    let overhangSpaces = [0, 0];
+
     for (let ruby of spanRubys) {
         /**@type {HTMLElement}*/
         let rt = ruby.getElementsByClassName('rt')[0];
 
         let rtWidth = rt.offsetWidth;
         let rubyWidth = ruby.offsetWidth;
-        let overhangMax = overhang * parseFloat(getComputedStyle(ruby).fontSize);
-        let overhangLeftMax = canOverhangLeft(ruby) ? overhangMax : 0;
-        let overhangRightMax = canOverhangRight(ruby) ? overhangMax : 0;
+
+        getRubyNeighbors(ruby, neighbors);
+
+        let fontSize = parseFloat(getComputedStyle(ruby).fontSize);
+        for (let i = 0; i < 2; ++i){
+            if (neighbors[i] instanceof HTMLSpanElement && neighbors[i].classList.contains('ruby')) {
+                let rubyWidth = neighbors[i].offsetWidth;
+                let rtWidth = neighbors[i].getElementsByClassName('rt')[0].offsetWidth;
+                overhangSpaces[i] = rubyWidth > rtWidth ? (rubyWidth-rtWidth)/2 : 0;
+            }
+            else {
+                overhangSpaces[i] = overhang * fontSize;
+            }
+        }
 
         if (rtWidth <= rubyWidth) {
-            // using CSS, do nothing
+            let left = (rubyWidth - rtWidth) / 2;
+            stylesToApply.push({ target: rt, name: 'left', value: left + 'px' });
         }
-        else if (rtWidth <= rubyWidth + overhangLeftMax + overhangRightMax) {
+        else if (rtWidth <= rubyWidth + overhangSpaces[0] + overhangSpaces[1]) {
             // no scale
             let extraWidth = rtWidth - rubyWidth;
             let extraHalf = extraWidth * 0.5;
             let left = extraHalf;
-            if (extraHalf > overhangLeftMax) {
-                left = overhangLeftMax;
+            if (extraHalf > overhangSpaces[0]) {
+                left = overhangSpaces[0];
             }
-            else if (extraHalf > overhangRightMax) {
-                left = extraWidth - overhangRightMax;
+            else if (extraHalf > overhangSpaces[1]) {
+                left = extraWidth - overhangSpaces[1];
             }
             stylesToApply.push({ target: rt, name: 'left', value: -left + 'px' });
         }
         else {
-            let scale = (rubyWidth + overhangLeftMax + overhangRightMax) / rtWidth;
-            let left = overhangLeftMax;
+            let scale = (rubyWidth + overhangSpaces[0] + overhangSpaces[1]) / rtWidth;
+            let left = overhangSpaces[0];
             if (scale < minScale) {
                 scale = minScale;
-                let rubyWidthExtended = rtWidth * scale - (overhangLeftMax + overhangRightMax);
+                let rubyWidthExtended = rtWidth * scale - (overhangSpaces[0] + overhangSpaces[1]);
                 stylesToApply.push({ target: ruby, name: 'width', value: rubyWidthExtended + 'px' });        
             }
             stylesToApply.push({ target: rt, name: 'transform', value: `scale(${scale}, 1)` });
@@ -148,6 +163,23 @@ function canOverhangLeft(ruby) {
 function canOverhangRight(ruby) {
     let rightText = firstTextNodeAfter(ruby);
     return rightText == null || rightText.parentElement.closest('span.ruby') == null;
+}
+
+/**@param {HTMLElement} ruby */
+/**@param {Node[]} results */
+function getRubyNeighbors(ruby, results) {
+    let leftText = lastTextNodeBefore(ruby);
+    let rightText = firstTextNodeAfter(ruby);
+
+    results[0] = findRuby(leftText);
+    results[1] = findRuby(rightText);
+        
+    function findRuby(text) {
+        if (text == null)
+            return null;
+        let ruby = text.parentElement.closest('span.ruby');
+        return ruby == null ? text : ruby;     
+    }
 }
 
 /**@param {Node} node */

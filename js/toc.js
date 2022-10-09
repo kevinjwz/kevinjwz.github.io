@@ -92,7 +92,7 @@ export function generateToc(toc, headings) {
 export function addListenersForToc(toc, content, headings) {
     window.addEventListener('scroll', helpers.throttle(_onScroll, 200));
     window.addEventListener('load', _onScroll);
-    content.addEventListener('resize', helpers.throttle(_onResize, 500));
+    window.addEventListener('resize', helpers.throttle(_onResize, 500));
 
     /** @type {[number,number][]} */
     let sections = [];

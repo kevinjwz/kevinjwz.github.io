@@ -11,6 +11,7 @@ import normalize from "./path-normalize.js";
 import * as helpers from "./helpers.js";
 import * as toc from "./toc.js";
 import * as ruby from "./ruby.js"
+import * as annotation from "./annotation.js"
 
 /*
 url format: /1.html?/absolute/path/of/mdfile
@@ -69,6 +70,7 @@ function onMdLoaded(md) {
     setSvgViewBox(mdcontent);
     ruby.convertRubyToSpan(mdcontent);
     ruby.setSpanRubyStyle(mdcontent);
+    annotation.initAnnotations(mdcontent);
 
     executeScripts(scripts);
     setButtonEvent(mdcontent);
@@ -99,7 +101,7 @@ function addUta(uta) {
 }
 
 
-function mdPreprocessor(){
+function mdPreprocessor() {
     let inside_triple_quote;
     let inside_single_quote;
     let inside_underline;
@@ -128,17 +130,24 @@ function mdPreprocessor(){
         /<>/,               () => '<span></span>',
         /[「【]/,           (_, m) => '<span lang="ja">' + m,
         /[」】]/,           (_, m) => m + '</span>',
-
+        
+        /\[\[/,             () => '<span class="term">',
+        /\]\]/,             () => '</span>',    
+        /^\{\{(?<anno_term>.+?)(?::|：)\s*/,
+                            g => `<div class="annotation" data-term="${g.anno_term}">\n\n`,
+        /\}\}$/,            () => '\n</div>\n',
+            
         /\\u\{(?<unicode_hex>[\da-fA-F,\s]+)\}/,
                             g => String.fromCodePoint(...g.unicode_hex.split(/,\s*|\s+/).map(x=>parseInt(x,16))),
         /\\r\{(?<raw_text>[^]+?)\}/,
                             g => g.raw_text,
                             
-        /^'''$/,            () => { 
+        /(?<triple_quote_prefix>[> ]*)'''$/,
+                            g => { 
                                 let tag = inside_triple_quote ? '</div>\n' : '<div lang="ja">\n';
                                 inside_triple_quote = !inside_triple_quote;
                                 inside_single_quote = false;
-                                return tag;
+                                return g.triple_quote_prefix + tag + g.triple_quote_prefix;
                             },
                             
         /\\'/,              () => `\\'`,
@@ -149,7 +158,7 @@ function mdPreprocessor(){
                                 return tag;      
                             },
 
-        /_+/,       () => {
+        /_/,       () => {
                                 let tag = inside_underline ? '</u>' : '<u>';
                                 inside_underline = !inside_underline;
                                 return tag;
@@ -162,11 +171,11 @@ function mdPreprocessor(){
         /(?<reflink_label>\]\[.+?\])/, g => g.reflink_label,
         /(?<reflink_label_def>\[.+?\]:.*$)/, g => g.reflink_label_def,
         
-        /(?<furigana>\{=?\s*[\u3040-\u30ff・/]+\s*\})/,
+        /(?<furigana>\{=?[\u3040-\u30ff・/\s]+\})/,
                             g => g.furigana,
-        /(?<easyfuri_kanji>\p{sc=Han}+)\{\s*(?<easyfuri_kana>[\u3040-\u30ff・/]+)\s*\}/u,
+        /(?<easyfuri_kanji>\p{sc=Han}+)\{(?<easyfuri_kana>[\u3040-\u30ff・/\s]+)\}/u,
                             g => `[${g.easyfuri_kanji}]{${g.easyfuri_kana}}`,
-        /(?<numfuri_number>[0-9０-９.]+)\{\s*(?<numfuri_kana>[\u3040-\u30ff・/]+)\s*\}/,
+        /(?<numfuri_number>[0-9０-９.]+)\{(?<numfuri_kana>[\u3040-\u30ff・/\s]+)\}/,
                             g => `[${g.numfuri_number}]{${g.numfuri_kana}}`,
         
         /(?<easytone_kana>[ぁ-ゖァ-ヺー]+)\{\s*(?:(?<easytone_num>\d+)|(?<easytone_hl>[hHlL]+))\s*\}/,

@@ -1,0 +1,487 @@
+html {
+    scroll-behavior: smooth;
+}
+body.markdown-body {
+    --width-body: min(100%, 1200px);          
+    --width-sidemenu: min(0.25*var(--width-body), 250px);
+
+    --padding-h-header: 25px;
+    --padding-top-header: 15px;
+
+    --padding-left-mdtoc: 15px;
+    --padding-right-mdtoc: 10px;
+    --padding-v-mdtoc: 35px;
+
+    --padding-mdcontent: 45px;
+
+    width: var(--width-body);
+    margin: 0 auto;
+}
+
+@supports not (width: min(1px,2px)){
+    body.markdown-body {
+        --width-body: 100%;
+        --width-sidemenu: calc(0.25*var(--width-body));
+    }
+}
+
+#header {
+    padding-top: var(--padding-top-header);
+    padding-left: var(--padding-h-header);
+    padding-right: var(--padding-h-header);
+}
+
+#show-toc, #hide-toc {
+    display: none;
+}
+
+#side-sticky {
+    width: var(--width-sidemenu);
+    max-height: 100vh;
+    float: left;
+    position: sticky;
+    top: 0px;
+    overflow: auto;
+}
+
+@media (max-width: 767px) {
+    body.markdown-body {
+        --width-body: 100%;
+        --width-sidemenu: 0px;
+
+        --padding-h-header:15px;
+        --padding-v-mdtoc: 15px;
+        --padding-mdcontent: 15px;
+
+        --height-side-sticky: 60%;
+    }
+
+    #show-toc {
+        all: unset;
+        display: block;
+        position: fixed;
+        bottom: 15px;
+        right: 15px;
+        padding: 0.5em;
+        background-color: var(--color-canvas-subtle);
+        border-color: var(--color-border-default);
+        border-width: 2px;
+        border-radius: 4px;
+        border-style: solid;
+        color: var(--color-fg-muted);
+        z-index: 1;
+        opacity:0.5;
+    }
+
+    #show-toc:hover {
+        opacity:1;
+    }
+
+    #show-toc.hidden {
+        visibility: hidden;
+    }
+
+    #side-sticky {
+        all: unset;
+        visibility: hidden;    
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        max-height: 60%;
+        overflow: auto;
+        background-color: var(--color-canvas-default);
+        z-index: 2;
+    }
+
+    #side-sticky.show {
+        visibility: visible;
+    }
+
+    #hide-toc {
+        all: unset;
+        visibility: hidden;
+        display: block;
+        position: fixed;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.2);
+        border-width: 0;
+        z-index: 1;
+    }
+
+    #hide-toc.show {
+        visibility: visible;
+    }
+
+    @media (prefers-color-scheme: dark) {
+        #hide-toc {
+            background-color: rgba(0,0,0,0.7);
+        }
+    }
+}
+
+#mdtoc {
+    padding: var(--padding-v-mdtoc);
+    padding-left: var(--padding-left-mdtoc);
+    padding-right: var(--padding-right-mdtoc);
+
+    --padding-v-a: 0.5em;
+    --padding-h-a: 1em;
+
+    --border-left-width-li: 2px;
+    --border-color-li: var(--color-border-default);
+
+    --border-left-width-current: 4px;
+    --background-color-current:var(--color-canvas-subtle);
+    --border-color-current:var(--color-fg-muted);
+
+    --text-color-a: var(--color-fg-muted);
+    --text-color-a-hover: var(--color-accent-fg);
+    --text-color-current: var(--color-fg-muted);
+}
+
+#mdtoc li {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+}
+
+#mdtoc ul {
+    padding-left: 0;
+    margin: 0;
+}
+
+#mdtoc ul ul {
+    margin-left: var(--padding-h-a);
+}
+
+#mdtoc > ul ul > li {
+    border-left-style: solid;
+    border-left-width: var(--border-left-width-li);
+    border-left-color: var(--border-color-li);
+    font-size: 80%;
+}
+
+@media (max-width: 767px) {
+    #mdtoc > ul ul > li {
+        font-size: 100%;
+    }
+}
+
+#mdtoc li > a {
+    display: block;
+    position: relative;
+    padding: var(--padding-v-a) var(--padding-h-a);
+    color: var(--text-color-a);
+}
+
+#mdtoc li > a:hover {
+    color: var(--text-color-a-hover) !important;
+    text-decoration: none;
+}
+
+#mdtoc li.toc-current > a {
+    font-weight: bold;
+    color: var(--text-color-current);
+}
+
+#mdtoc > ul ul > li.toc-current > a {
+    background-color: var(--background-color-current);
+}
+
+#mdtoc > ul ul > li.toc-current > a::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    --diff-width: calc(var(--border-left-width-current) - var(--border-left-width-li));
+    left: calc(0px - var(--border-left-width-li) - var(--diff-width)*0.5);
+    height: 100%;       
+    width: var(--border-left-width-current);
+    background-color: var(--border-color-current);
+}
+
+#mdcontent {
+    margin-left: var(--width-sidemenu);
+    padding: var(--padding-mdcontent);
+}
+
+#header a {
+    margin-right: 20px;
+}
+
+#mdcontent :first-child {
+    margin-top: 0;
+}
+
+#mdcontent img {
+    display: block;
+    margin: 0 auto;
+}
+
+#mdcontent u, #mdcontent u span.ruby {
+    text-decoration: underline 0.7px;
+    text-underline-offset: 2px;
+}
+
+#mdcontent span.tone {
+    position: relative;
+    line-height: 2em;
+    z-index: 0;
+}
+#mdcontent td span.tone {
+    line-height: unset;
+}
+#mdcontent span.tone::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    left: 0px;
+    top: 0px;
+    border-style: none;
+    border-width: 1px;
+    border-color: var(--color-accent-fg);
+    z-index: -1;
+}
+#mdcontent span.tone.l::after {
+    border-bottom-style: solid;
+}
+#mdcontent span.tone.h::after {
+    border-top-style: solid;
+}
+#mdcontent span.tone.v {
+    margin-right: 1px;
+}
+#mdcontent span.tone.v::after {
+    border-right-style: solid;
+}
+
+#mdcontent .boxed {
+    border-color: initial;
+    border-style: solid;
+    border-width: 2px;
+    width: fit-content;
+    padding: 16px;
+    margin-bottom: 16px;
+}
+
+#mdcontent .boxed :last-child {
+    margin-bottom: 0px;
+}
+
+#mdcontent em {
+    font-style: inherit;
+    -webkit-text-emphasis: filled circle;
+    text-emphasis: filled circle;
+    -webkit-text-emphasis-position: under right;
+    text-emphasis-position: under right;
+}
+
+#mdcontent h1, #mdcontent h2, #mdcontent h3, #mdcontent b, #mdcontent strong{
+    font-weight: bold;
+}
+
+#mdcontent :not(h1) + h3 {
+    margin-top: 2em;
+}
+
+#mdcontent .hidden-table td,
+#mdcontent .hidden-table th {
+    border-style: hidden;
+    padding: 0px;
+    font-weight: initial;
+}
+
+#mdcontent .hidden-table tr {
+    background-color: var(--color-canvas-default);
+    vertical-align: baseline;
+}
+
+#mdcontent table {
+    white-space:nowrap;
+    overflow: auto;
+}
+
+#mdcontent table caption{
+    color: var(--color-prettylights-syntax-comment);
+}
+
+#mdcontent tbody,
+#mdcontent thead {
+    border-left-style: hidden;
+    border-right-style: hidden;
+    border-collapse: collapse;
+}
+
+#mdcontent table tr {
+    border-top-width: 0;
+}
+#mdcontent table > tbody:not(:first-of-type) > tr:first-child {
+    border-top-width: 3px;
+}
+#mdcontent table td.split, 
+#mdcontent table th.split{
+    border-right-width: 3px;
+}
+
+
+#mdcontent summary:hover {
+    background-color: var(--color-canvas-subtle);
+}
+
+#mdcontent summary::marker {
+    color: var(--color-accent-fg);
+}
+
+#mdcontent span.ruby.mark-ruby, #mdcontent .mark-ruby span.ruby {
+    z-index: 0; 
+}
+#mdcontent .mark-ruby span.rt {
+    background-color: var(--color-attention-subtle);
+    z-index: -1;
+}
+
+#mdcontent p:empty::after {
+    content: ".";
+    visibility: hidden;
+}
+
+#mdcontent blockquote {
+    color: inherit;
+    background-color: var(--color-canvas-default);
+}
+
+#mdcontent svg, #mdcontent img {
+    max-width: max-content;
+    width: 100%;
+    height: auto;
+}
+
+#mdcontent figure{
+    max-width: max-content;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+#mdcontent figcaption {
+    text-align: center;
+}
+
+#mdcontent ul, #mdcontent ol {
+    padding-left: 16px;
+}
+
+#mdcontent .uta {
+    margin-top: 3em;
+    padding-top: 3em;
+    padding-bottom: 5em;
+    border-top: 1px solid var(--color-border-muted);
+    color: var(--color-fg-subtle);
+    text-align: center;
+}
+
+#mdcontent {
+    font-family: sans-serif;
+}
+
+#mdcontent blockquote.ps {
+    background-color: var(--color-canvas-subtle);
+    border-left-color: var(--color-fg-muted);
+    padding-top: 0.8em;
+    padding-bottom: 0.8em;
+}
+
+#mdcontent rt {
+    /* position: relative; */
+    /* top: 0.5em; */
+    font-size: 60%;
+}
+
+#mdcontent span.ruby{
+    display: inline-block;
+    position: relative;
+    /* padding-top: 0.80em; */
+    text-align: center;
+
+    --rt-font-size: max(0.5em, min(1rem, 0.75em));
+    padding-top: calc(var(--rt-font-size)*1.07);
+}
+@supports not (font-size:max(1em,2em)){
+    #mdcontent span.ruby{
+        --rt-font-size: 0.75em;
+    }
+}
+#mdcontent span.ruby > .rt {
+    font-size: var(--rt-font-size);
+    font-family: "Meiryo UI", sans-serif;
+    position: absolute;
+    left: 0;
+    top: 0;
+
+    width: max-content;
+
+    transform-origin: left;
+}
+#mdcontent span.ruby > .rp {
+    display: none;
+}
+
+span.term {
+    color: var(--color-accent-fg);
+    cursor: pointer;
+}
+
+span.term::after {
+    content: "?";
+    vertical-align: super;
+    font-size: smaller;
+}
+
+div.annotation {
+    display:none;
+}
+
+div.annotation.show {
+    display:block;
+    position: absolute;
+    width: max-content;
+    max-width: min(400px, var(--width-body) - 30px);
+    left: 0;
+    top: 0;
+
+    padding: 15px;
+    background-color: var(--bg-blue);
+    box-shadow: rgba(0,0,0,0.5) 0px 5px 10px;
+
+    z-index: 1;
+}
+
+div.annotation.show > :last-child {
+    margin-bottom: 0;
+}
+
+.markdown-body {
+    --red: var(--color-prettylights-syntax-keyword);
+    --green: var(--color-prettylights-syntax-string-regexp);
+    --blue: var(--color-prettylights-syntax-constant);
+    --bg-red: var(--color-prettylights-syntax-markup-deleted-bg);
+    --bg-green: var(--color-prettylights-syntax-markup-inserted-bg);
+    --bg-blue: #E2F1FF;
+    --bg-purple: #EAE3F7;
+    --bg-gray: #e0e0e0;
+    --bg-light-gray: #eaeaea;
+}
+
+@media (prefers-color-scheme: dark) {
+    .markdown-body {
+        --bg-blue: #06253D;
+        --bg-purple: #430754;
+        --bg-gray: #303030;
+        --bg-light-gray: #262626;
+        --color-attention-subtle: rgba(187,128,9,0.30);
+    }
+}
